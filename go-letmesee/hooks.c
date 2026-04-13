@@ -415,3 +415,34 @@ read_heading_once(EB_Book *book, EB_Appendix *appendix,
     *out_len = (size_t)len;
     return result;
 }
+
+/* ------------------------------------------------------------------ */
+/* Binary data reading helper                                           */
+/* ------------------------------------------------------------------ */
+
+char *
+read_binary_all(EB_Book *book, size_t *out_len)
+{
+    size_t total = 0;
+    size_t alloc = READ_BUF;
+    char  *result = (char *)malloc(alloc);
+    char   buf[4096];
+    ssize_t chunk;
+
+    if (!result) { *out_len = 0; return NULL; }
+
+    for (;;) {
+        EB_Error_Code rc = eb_read_binary(book, sizeof(buf), buf, &chunk);
+        if (rc != EB_SUCCESS || chunk <= 0) break;
+        if (total + (size_t)chunk >= alloc) {
+            alloc = (total + (size_t)chunk) * 2 + 1;
+            char *tmp = (char *)realloc(result, alloc);
+            if (!tmp) { free(result); *out_len = 0; return NULL; }
+            result = tmp;
+        }
+        memcpy(result + total, buf, (size_t)chunk);
+        total += (size_t)chunk;
+    }
+    *out_len = total;
+    return result;
+}

@@ -10,6 +10,7 @@ package main
 #include <eb/text.h>
 #include <eb/appendix.h>
 #include <eb/font.h>
+#include <eb/binary.h>
 #include <stdlib.h>
 #include <string.h>
 */
@@ -366,6 +367,69 @@ func (s *Subbook) Copyright(hc *HookContext) (string, error) {
 		return "", nil
 	}
 	return s.Content(int(pos.page), int(pos.offset), hc)
+}
+
+// ------------------------------------------------------------------ //
+// Binary media reading                                                 //
+// ------------------------------------------------------------------ //
+
+// ReadColorGraphic reads a color graphic (BMP or JPEG) at the given
+// position and returns the raw bytes.
+func (s *Subbook) ReadColorGraphic(page, offset int) ([]byte, error) {
+	pos := C.EB_Position{page: C.int(page), offset: C.int(offset)}
+	if rc := C.eb_set_binary_color_graphic(s.book, &pos); rc != C.EB_SUCCESS {
+		return nil, fmt.Errorf("eb_set_binary_color_graphic: %s", ebErrStr(rc))
+	}
+	return drainBinary(s.book)
+}
+
+// ReadMonoGraphic reads a monochrome graphic and returns the raw BMP bytes.
+// height and width are in pixels as reported by the HOOK_BEGIN_MONO_GRAPHIC callback.
+func (s *Subbook) ReadMonoGraphic(page, offset, width, height int) ([]byte, error) {
+	pos := C.EB_Position{page: C.int(page), offset: C.int(offset)}
+	// EB library expects (height, width) in that order.
+	if rc := C.eb_set_binary_mono_graphic(s.book, &pos, C.int(height), C.int(width)); rc != C.EB_SUCCESS {
+		return nil, fmt.Errorf("eb_set_binary_mono_graphic: %s", ebErrStr(rc))
+	}
+	return drainBinary(s.book)
+}
+
+// ReadWave reads WAVE audio data between two positions and returns the raw bytes.
+func (s *Subbook) ReadWave(page, offset, page2, offset2 int) ([]byte, error) {
+	start := C.EB_Position{page: C.int(page), offset: C.int(offset)}
+	end := C.EB_Position{page: C.int(page2), offset: C.int(offset2)}
+	if rc := C.eb_set_binary_wave(s.book, &start, &end); rc != C.EB_SUCCESS {
+		return nil, fmt.Errorf("eb_set_binary_wave: %s", ebErrStr(rc))
+	}
+	return drainBinary(s.book)
+}
+
+// ReadMPEG reads MPEG movie data identified by two page/offset pairs.
+// The four values correspond to what the HOOK_BEGIN_MPEG callback receives.
+func (s *Subbook) ReadMPEG(page, offset, page2, offset2 int) ([]byte, error) {
+	// eb_set_binary_mpeg takes an array of 4 unsigned ints.
+	argv := [4]C.uint{C.uint(page), C.uint(offset), C.uint(page2), C.uint(offset2)}
+	if rc := C.eb_set_binary_mpeg(s.book, &argv[0]); rc != C.EB_SUCCESS {
+		return nil, fmt.Errorf("eb_set_binary_mpeg: %s", ebErrStr(rc))
+	}
+	return drainBinary(s.book)
+}
+
+// drainBinary calls read_binary_all (defined in hooks.c) to collect all
+// bytes from the stream that was positioned by an eb_set_binary_* call.
+func drainBinary(book *C.EB_Book) ([]byte, error) {
+	var l C.size_t
+	p := C.read_binary_all(book, &l)
+	if p == nil {
+		return nil, fmt.Errorf("read_binary_all returned nil")
+	}
+	defer C.free(unsafe.Pointer(p))
+	if l == 0 {
+		return nil, nil
+	}
+	out := make([]byte, int(l))
+	copy(out, C.GoBytes(unsafe.Pointer(p), C.int(l)))
+	return out, nil
 }
 
 // ------------------------------------------------------------------ //

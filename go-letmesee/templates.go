@@ -2,7 +2,7 @@ package main
 
 import "html/template"
 
-// Templates mirrors the skel/ directory from the original Ruby application.
+// Templates mirror the skel/ directory from the original Ruby application.
 // Each template uses the same CSS class names as the default theme so that
 // existing tDiary-compatible stylesheets keep working unchanged.
 

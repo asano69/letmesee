@@ -41,4 +41,12 @@ char *read_text_full(EB_Book *book, EB_Appendix *appendix,
 char *read_heading_once(EB_Book *book, EB_Appendix *appendix,
                         EB_Hookset *hookset, void *ctx, size_t *out_len);
 
+/*
+ * Drain all available binary data (graphic/audio/video) from book into a
+ * malloc'd buffer.  Call eb_set_binary_* first to position the stream.
+ * The caller must free() the returned pointer.
+ * Returns NULL on error; *out_len is set to the number of bytes written.
+ */
+char *read_binary_all(EB_Book *book, size_t *out_len);
+
 #endif /* HOOKS_H */

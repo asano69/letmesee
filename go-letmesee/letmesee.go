@@ -98,7 +98,12 @@ func (a *App) Close() {
 func (a *App) DictCount() int { return len(a.dicts) }
 
 // DictTitle returns the UTF-8 title for subbook i.
-func (a *App) DictTitle(i int) string { return eucToUTF8(a.dicts[i].Title()) }
+func (a *App) DictTitle(i int) string {
+	if i < 0 || i >= len(a.dicts) {
+		return ""
+	}
+	return eucToUTF8(a.dicts[i].Title())
+}
 
 // ------------------------------------------------------------------ //
 // Request parameters                                                   //
@@ -418,7 +423,7 @@ func utf8ToEUC(s string) (string, error) {
 }
 
 // convertToASCII strips Latin diacritics, matching the Ruby method of the
-// same name. Unicode normalisation removes combining marks.
+// same name.
 func convertToASCII(s string) string {
 	var b strings.Builder
 	for _, r := range s {
