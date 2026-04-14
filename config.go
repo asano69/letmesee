@@ -44,6 +44,10 @@ type JSONConfig struct {
 	SectionAnchor string `json:"section_anchor"`
 }
 
+// staticThemeDir is the directory under which named themes are stored.
+// A theme named "default" resolves to static/theme/default/default.css.
+const staticThemeDir = "static/theme"
+
 // LoadConfig reads a JSON config file and merges it over the defaults.
 // Unset fields in the file keep their default values.
 func LoadConfig(path string) (Config, error) {
@@ -89,10 +93,11 @@ func LoadConfig(path string) (Config, error) {
 	cfg.Footer = template.HTML(jc.Footer)
 	cfg.SectionAnchor = template.HTML(jc.SectionAnchor)
 
-	// Theme takes precedence over raw CSS URL.
+	// Theme takes precedence over a raw CSS URL.
+	// CSS files for named themes live under static/theme/<name>/<name>.css.
 	switch {
 	case jc.Theme != "":
-		cfg.ThemeCSS = "theme/" + jc.Theme + "/" + jc.Theme + ".css"
+		cfg.ThemeCSS = staticThemeDir + "/" + jc.Theme + "/" + jc.Theme + ".css"
 	case jc.CSS != "":
 		cfg.ThemeCSS = jc.CSS
 	}

@@ -1,0 +1,35 @@
+{{range .Results}}
+    <hr class="sep">
+    <div class="day">
+      <h2><span class="date">{{.DictTitle}} Hit:{{len .Hits}}</span></h2>
+      <div class="body">
+        {{range .Hits}}
+        <div class="section">
+          <h3>{{$.SectionAnchor}}{{.Heading}}</h3>
+          <p class="content">{{.Content}}</p>
+        </div>
+        {{end}}
+      </div>
+      <div class="referer"></div>
+    </div>
+{{end}}
+{{if .SpellResults}}
+    <hr class="sep">
+    <div class="day">
+      <h2><span class="date">スペル・チェッカー</span></h2>
+      <div class="body">
+        {{range .SpellResults}}
+        <div class="section">
+          <h3>{{.Dict}}</h3>
+          <p class="content">
+            <input type="hidden" name="mode" value="exactsearch">
+            {{range .Words}}
+            <input type="submit" name="query" value="{{.}}">
+            {{end}}
+          </p>
+        </div>
+        {{end}}
+      </div>
+      <div class="referer"></div>
+    </div>
+{{end}}

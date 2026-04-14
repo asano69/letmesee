@@ -146,7 +146,7 @@ func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Show the simple landing page when there is no query and no search mode.
 	if p.Query == "" && !isSearchMode(p.Mode) && p.Mode != "menu" && p.Mode != "copyright" && p.Mode != "reference" {
-		h.renderIndex(w)
+		h.renderIndexPage(w)
 		return
 	}
 
@@ -175,14 +175,24 @@ func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(buf.Bytes())
 }
 
-// renderIndex serves the landing page (skel/index.html equivalent).
-// It is a standalone HTML page with no header/footer wrapper.
-func (h *appHandler) renderIndex(w http.ResponseWriter) {
+// renderIndexPage serves the landing page from static/index.html.
+// The file is read fresh on each request so edits take effect immediately
+// without restarting the server.  If the file is missing, a minimal
+// fallback page is sent so the server remains usable.
+func (h *appHandler) renderIndexPage(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
-	if err := tIndex.Execute(w, nil); err != nil {
-		log.Printf("tIndex: %v", err)
+
+	data, err := os.ReadFile("static/index.html")
+	if err != nil {
+		log.Printf("static/index.html: %v", err)
+		// Minimal fallback so the search form is still accessible.
+		fmt.Fprintf(w, `<!DOCTYPE html><html><body>`+
+			`<form method="get"><input name="query"><input type="submit" value="検索"></form>`+
+			`</body></html>`)
+		return
 	}
+	w.Write(data)
 }
 
 func isSearchMode(m string) bool {
@@ -380,10 +390,11 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", &appHandler{app: app})
-	// Serve theme CSS and assets from ./theme/ on disk.
-	// cssFileServer wraps http.FileServer to guarantee correct MIME types
+
+	// Serve CSS, images and other assets from ./static/ on disk.
+	// staticFileServer wraps http.FileServer to guarantee correct MIME types
 	// regardless of the host OS MIME database.
-	mux.Handle("/theme/", cssFileServer(http.Dir(".")))
+	mux.Handle("/static/", staticFileServer(http.Dir(".")))
 
 	log.Printf("listening on %s", *listen)
 
@@ -402,18 +413,19 @@ func main() {
 	}
 }
 
-// cssFileServer returns a handler that serves static files while forcing
-// correct Content-Type headers for CSS and JS files. Go's http.FileServer
-// falls back to the OS MIME database, which may return "text/plain" for
-// .css files on some systems. Browsers with X-Content-Type-Options: nosniff
-// will then refuse to apply the stylesheet.
-func cssFileServer(root http.FileSystem) http.Handler {
+// staticFileServer returns a handler that serves files from root while
+// forcing correct Content-Type headers for CSS and JS files.
+// Go's http.FileServer falls back to the OS MIME database, which may return
+// "text/plain" for .css files on some systems; browsers with
+// X-Content-Type-Options: nosniff will then refuse to apply the stylesheet.
+func staticFileServer(root http.FileSystem) http.Handler {
 	fs := http.FileServer(root)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := r.URL.Path
 		switch {
-		case len(r.URL.Path) > 4 && r.URL.Path[len(r.URL.Path)-4:] == ".css":
+		case len(p) > 4 && p[len(p)-4:] == ".css":
 			w.Header().Set("Content-Type", "text/css; charset=utf-8")
-		case len(r.URL.Path) > 3 && r.URL.Path[len(r.URL.Path)-3:] == ".js":
+		case len(p) > 3 && p[len(p)-3:] == ".js":
 			w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 		}
 		fs.ServeHTTP(w, r)

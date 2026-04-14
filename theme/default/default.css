@@ -1,0 +1,106 @@
+/* let me see... default theme
+   Compatible with tDiary-style class names used in templates. */
+
+body {
+    font-family: sans-serif;
+    font-size: small;
+    margin: 0;
+    padding: 0;
+    background-color: #ffffff;
+    color: #000000;
+}
+
+form {
+    margin: 8px;
+}
+
+input[type="text"],
+input[name="query"] {
+    font-size: small;
+}
+
+select {
+    font-size: small;
+}
+
+/* Separator line between result blocks */
+hr.sep {
+    border: none;
+    border-top: 1px solid #cccccc;
+    margin: 4px 0;
+}
+
+/* One dictionary result block */
+div.day {
+    margin: 4px 8px;
+}
+
+/* Dictionary title / hit count header */
+div.day h2 {
+    font-size: small;
+    font-weight: bold;
+    margin: 2px 0;
+    padding: 2px 4px;
+    background-color: #e8e8e8;
+    border-left: 3px solid #666666;
+}
+
+span.date {
+    /* wraps the h2 text; no extra styling needed */
+}
+
+div.body {
+    margin-left: 16px;
+}
+
+/* Individual hit within a dictionary */
+div.section {
+    margin: 4px 0;
+}
+
+div.section h3 {
+    font-size: small;
+    font-weight: bold;
+    margin: 2px 0;
+}
+
+p.content {
+    margin: 2px 0 6px 8px;
+    line-height: 1.6;
+}
+
+/* Section anchor used by tDiary themes — hidden by default */
+span.sanchor {
+    display: none;
+}
+
+/* Reference / cross-link spans */
+span.reference a {
+    color: #0000cc;
+}
+
+/* Gaiji (custom glyph) images — aligned to surrounding text baseline */
+img.gaiji_wide,
+img.gaiji_narrow {
+    vertical-align: middle;
+}
+
+/* Audio player for WAVE entries */
+audio {
+    vertical-align: middle;
+    height: 24px;
+}
+
+/* Page footer */
+div.footer {
+    margin: 8px;
+    font-size: x-small;
+    color: #666666;
+    border-top: 1px solid #cccccc;
+    padding-top: 4px;
+}
+
+/* Bold / italic / super / sub decoration from hooks */
+strong { font-weight: bold; }
+sub    { font-size: 0.75em; vertical-align: sub; }
+sup    { font-size: 0.75em; vertical-align: super; }
