@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+# encoding: UTF-8
 
 # Copyright (C) 2002-2007  Kazuhiko <kazuhiko@fdiary.net>
 #
@@ -13,19 +13,12 @@
 # GNU General Public License for more details.
 #
 
-
-$LOAD_PATH.unshift(File.dirname(__FILE__))
-$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), "erb"))
-
-
-$KCODE = 'u'
+#$KCODE = 'u'
 
 require 'nkf'
-#require 'iconv'
-require_relative 'eb'
-require_relative 'erb/erbl'
+require 'eb'
 require 'cgi'
-require 'stem'
+require_relative './stem'
 begin
 	require 'erb_fast'
 rescue LoadError
@@ -37,7 +30,7 @@ rescue LoadError
 	end
 end
 
-LetMeSee_VERSION = '1.1.20080316'
+LetMeSee_VERSION = '1.3.3'
 
 # enhanced CGI class
 class CGI
@@ -67,17 +60,21 @@ class LetMeSee
 		@cgi, @rhtml = cgi, rhtml
 		load_conf
 		@query = (@cgi.params['query'][-1] || '')
-		@ie = @cgi.params['ie'][0] || "UTF8"
+		@ie = @cgi.params['ie'][0] || "utf-8"
 		begin
-			@query = @query.encode("utf-8", @ie)
+			if @ie.casecmp("utf-8") != 0 then
+				@ec = Encoding::Converter.new(@ie, "utf-8")
+				@query = @ec.convert(@query)
+			end
                 rescue
 			@query = NKF::nkf("-w -m0", @query)
 		end
 		@dict = @cgi.params['dict']
-		@mode = @cgi.params['mode'][0] || 'exactsearch'
+		@mode = @cgi.params['mode'][0] || 'search'
+		@xml = @cgi.params['output'][0] == 'xml'
 		@maxhit = (@cgi.params['maxhit'][0] || 10).to_i
 		@book = @cgi.params['book'][0].to_i
-		@decoration = 0
+		@decoration = []
 		@dicts = []
 		@dictlist.each do |item|
 			if item.class == String
@@ -106,21 +103,24 @@ class LetMeSee
 		r = str.gsub(/\\</, '<').gsub(/\\>/, '>').gsub(/\\"/, '"')
 		r.gsub!(/<reference>(.+?)<\/reference (.+?)>/) { "<a href=\"#{@index}?mode=reference&amp;#{$2}\">#{$1}</a>" }
 		r.gsub!(/<mono_graphic (.+?)>(.+?)<\/mono_graphic (.+?)>/) {"<img src=\"#{@index}?mode=mono_graphic&amp;#{$3}&amp;#{$1}\" alt=\"[画像]\">#{$2}" }
+                r.gsub!(/<deco_([a-z]+)>(.+?)<\/deco_\1>/) {"<#{$1}>#{$2}</#{$1}>" }
+                r.gsub!(/<\/?deco_([a-z]+)>/, '')
 		return r
 	end
 
 	def eval_rhtml( )
 		files = ["header.rhtml", @rhtml, "footer.rhtml"]
 		rhtml = files.collect {|file|
-			path = "#{PATH}/skel/#{file}"
-			File::open( path ) {|f| f.read }
+			skel_dir = @xml ? "skelxml" : "skel"
+			path =  "#{PATH}/#{skel_dir}/#{file}"
+			File::open( path , "r:utf-8" ) {|f| f.read }
 		}.join
-		r = ERB::new( rhtml, nil, 1 ).result( binding )
+		r = ERB::new( rhtml.untaint, nil, 1 ).result( binding )
 		r
 	end
 
 	def load_conf
-		eval( File::open( "#{PATH}/letmesee.conf" ) { |f| f.read } )
+		eval( File::open( "#{PATH}/letmesee.conf" ,"r:utf-8" ) { |f| f.read }.untaint )
 		@num_columns = 3 unless @num_columns
 		@ispell_command = "ispell" unless @ispell_command
 		@ispell_dict_list = ['american'] unless @ispell_dict_list
@@ -164,10 +164,11 @@ class LetMeSee
 		begin
 			result = nil
 			IO.popen("#{@ispell_command} -a -m -C -d #{dict}", 'r+') do |io|
-				io.write("#{word.encode('iso-8859-1', 'utf-8')}\n")
+				# Encoding::Converterは変換前と変換先がiconv.convと逆になります。
+				io.write("#{Encoding::Converter.new(Encoding::UTF_8, Encoding::ISO_8859_1).convert(word)}\n")
 				io.close_write()
 				io.gets() # Ignore this header line.
-				result = io.read.encode('utf-8', 'iso-8859-1')
+				result = Encoding::Converter.new(Encoding::ISO_8859_1, Encoding::UTF_8).convert(io.read)
 			end
 			if $? == 0
 				if /\A\+ (.*)/ =~ result
@@ -277,8 +278,14 @@ class LetMeSee
 	def gaiji_w
 		code = @cgi.params['code'][0].to_i
 		b = @dicts[@book]
-		b.fontcode = @fontcode
-		print @cgi.header( {'type' => 'image/gif'} )
+                begin
+                        b.fontcode = @fontcode
+                rescue RuntimeError
+                	# 適切な外字フォントがない場合は最小サイズにフォールバックします
+                        b.fontcode = EB::FONT_16
+                end
+
+		print @cgi.header( {'type' => 'image/gif' , 'Cache-Control' => 'public, max-age=86400'} )
 		print b.get_widefont(code).to_gif
 	end
 
@@ -286,8 +293,12 @@ class LetMeSee
 	def gaiji_n
 		code = @cgi.params['code'][0].to_i
 		b = @dicts[@book]
-		b.fontcode = @fontcode
-		print @cgi.header( {'type' => 'image/gif'} )
+                begin
+                        b.fontcode = @fontcode
+                rescue RuntimeError
+                        b.fontcode = EB::FONT_16
+                end
+		print @cgi.header( {'type' => 'image/gif' , 'Cache-Control' => 'public, max-age=86400'} )
 		print b.get_narrowfont(code).to_gif
 	end
 
@@ -357,31 +368,31 @@ class LetMeSee
 	def hookset (book)
 		h = EB::Hookset.new
 		h.register(EB::HOOK_NEWLINE) do |eb2,argv|
-			"\\<br\\>\n"
+			"\\<br /\\>\n"
 		end
-		h.register(EB::HOOK_WIDE_FONT) do |eb2,argv|
-			'\<img src=\"' + @index + format('?book=%d;mode=gaiji_w;code=%d\" alt=\"_\" width=\"%d\" height=\"%d\"\>',book, argv[0], @fontsize_w, @fontsize)
-		end
-		h.register(EB::HOOK_NARROW_FONT) do |eb2,argv|
-			'\<img src=\"' + @index + format('?book=%d;mode=gaiji_n;code=%d\" alt=\"_\" width=\"%d\" height=\"%d\"\>',book, argv[0], @fontsize_n, @fontsize)
-		end
+                h.register(EB::HOOK_WIDE_FONT) do |eb2,argv|
+                        '\<img class=\"gaiji_wide\" src=\"' + @index + format('?book=%d;mode=gaiji_w;code=%d\" alt=\"_\" width=\"%d\" height=\"%d\" /\>',book, argv[0], @fontsize_w, @fontsize)
+                end
+                h.register(EB::HOOK_NARROW_FONT) do |eb2,argv|
+                        '\<img class=\"gaiji_narrow\" src=\"' + @index + format('?book=%d;mode=gaiji_n;code=%d\" alt=\"_\" width=\"%d\" height=\"%d\" /\>',book, argv[0], @fontsize_n, @fontsize)
+                end
 		h.register(EB::HOOK_BEGIN_EMPHASIS) do |eb2,argv|
-			'\<strong\>'
+			'\<deco_strong\>'
 		end
 		h.register(EB::HOOK_END_EMPHASIS) do |eb2,argv|
-			'\</strong\>'
+			'\</deco_strong\>'
 		end
 		h.register(EB::HOOK_BEGIN_SUBSCRIPT) do |eb2,argv|
-			'\<sub\>'
+			'\<deco_sub\>'
 		end
 		h.register(EB::HOOK_END_SUBSCRIPT) do |eb2,argv|
-			'\</sub\>'
+			'\</deco_sub\>'
 		end
 		h.register(EB::HOOK_BEGIN_SUPERSCRIPT) do |eb2,argv|
-			'\<sup\>'
+			'\<deco_sup\>'
 		end
 		h.register(EB::HOOK_END_SUPERSCRIPT) do |eb2,argv|
-			'\</sup\>'
+			'\</deco_sup\>'
 		end
 		h.register(EB::HOOK_BEGIN_REFERENCE) do |eb2,argv|
 			'\<span class=\"reference\"\>\<reference\>'
@@ -411,14 +422,14 @@ class LetMeSee
 		end
 		h.register(EB::HOOK_BEGIN_COLOR_BMP) do |eb2,argv|
 			if @force_inline
-				%Q!\<img src=\"#{@index}?mode=bmp;book=#{book};page=#{argv[2]};offset=#{argv[3]}\" alt=\"#{IMG_STR}\"\>!
+				%Q!\<img src=\"#{@index}?mode=bmp;book=#{book};page=#{argv[2]};offset=#{argv[3]}\" alt=\"#{IMG_STR}\" /\>!
 			else
 				%Q!\<a href=\"#{@index}?mode=bmp;book=#{book};page=#{argv[2]};offset=#{argv[3]}\">#{IMG_STR} !
 			end
 		end
 		h.register(EB::HOOK_BEGIN_COLOR_JPEG) do |eb2,argv|
 			if @force_inline
-				%Q!\<img src=\"#{@index}?mode=jpeg;book=#{book};page=#{argv[2]};offset=#{argv[3]}\" alt=\"#{IMG_STR}\"\>!
+				%Q!\<img src=\"#{@index}?mode=jpeg;book=#{book};page=#{argv[2]};offset=#{argv[3]}\" alt=\"#{IMG_STR}\" /\>!
 			else
 				%Q!\<a href=\"#{@index}?mode=jpeg;book=#{book};page=#{argv[2]};offset=#{argv[3]}\">#{IMG_STR} !
 			end
@@ -429,46 +440,66 @@ class LetMeSee
 			end
 		end
 		h.register(EB::HOOK_BEGIN_IN_COLOR_BMP) do |eb2,argv|
-			%Q!\<img src=\"#{@index}?mode=bmp;book=#{book};page=#{argv[2]};offset=#{argv[3]}\" alt=\"#{IMG_STR}\"\>!
+			%Q!\<img src=\"#{@index}?mode=bmp;book=#{book};page=#{argv[2]};offset=#{argv[3]}\" alt=\"#{IMG_STR}\" /\>!
 		end if EB.const_defined?(:HOOK_BEGIN_IN_COLOR_BMP)
 		h.register(EB::HOOK_BEGIN_IN_COLOR_JPEG) do |eb2,argv|
-			%Q!\<img src=\"#{@index}?mode=jpeg;book=#{book};page=#{argv[2]};offset=#{argv[3]}\" alt=\"#{IMG_STR}\"\>!
+			%Q!\<img src=\"#{@index}?mode=jpeg;book=#{book};page=#{argv[2]};offset=#{argv[3]}\" alt=\"#{IMG_STR}\" /\>!
 		end if EB.const_defined?(:HOOK_BEGIN_IN_COLOR_JPEG)
 		h.register(EB::HOOK_BEGIN_WAVE) do |eb2,argv|
-			%Q!\<a href=\"#{@index}?mode=wave;book=#{book};page=#{argv[2]};offset=#{argv[3]};page2=#{argv[4]};offset2=#{argv[5]}\">#{AUDIO_STR} !
+			# HTML5 audio
+			href_audio=%Q!#{@index}?mode=wave;book=#{book};page=#{argv[2]};offset=#{argv[3]};page2=#{argv[4]};offset2=#{argv[5]}!
+			%Q!\<audio src=\"#{href_audio}\" controls preload=\"none\"></audio><a href=\"#{href_audio}\">#{AUDIO_STR} !
 		end
 		h.register(EB::HOOK_END_WAVE) do |eb2,argv|
 			'\</a\>'
 		end
 		h.register(EB::HOOK_BEGIN_MPEG) do |eb2,argv|
+			# MPEG1はHTML5 videoでは基本非対応です。ので、従来通りのリンクに。
+			#href_video = %Q!#{@index}?mode=mpeg;book=#{book};page=#{argv[2]};offset=#{argv[3]};page2=#{argv[4]};offset2=#{argv[5]}!
+			#%Q!\<video src=\"#{href_video}\" controls preload=\"none\" width=\"250\"></video><br/><a href=\"#{href_video}\">#{VIDEO_STR} !
 			%Q!\<a href=\"#{@index}?mode=mpeg;book=#{book};page=#{argv[2]};offset=#{argv[3]};page2=#{argv[4]};offset2=#{argv[5]}\">#{VIDEO_STR} !
 		end
 		h.register(EB::HOOK_END_MPEG) do |eb2,argv|
 			'\</a\>'
 		end
-		if EB.const_defined?(:HOOK_BEGIN_DECORATION)
-			h.register(EB::HOOK_BEGIN_DECORATION) do |eb2,argv|
-				@decoration = argv[1]
-				case @decoration
-				when 1
-					'\<i\>'
-				when 3
-					'\<b\>'
-				end
-			end
-			h.register(EB::HOOK_END_DECORATION) do |eb2,argv|
-				case @decoration
-				when 1
-					'\</i\>'
-				when 3
-					'\</b\>'
-				end
-			end
-		end
-		return h
+                if EB.const_defined?(:HOOK_BEGIN_DECORATION)
+                        h.register(EB::HOOK_BEGIN_DECORATION) do |eb2,argv|
+                                @decoration.push(argv[1])
+                                case argv[1]
+                                when 1
+                                        '\<deco_i\>'
+                                when 3
+                                        '\<deco_b\>'
+                                end
+                        end
+                        h.register(EB::HOOK_END_DECORATION) do |eb2,argv|
+                                case @decoration.pop
+                                when 1
+                                        '\</deco_i\>'
+                                when 3
+                                        '\</deco_b\>'
+                                end
+                        end
+                end
+                return h
 	end
 
 	def conv(str)
 		NKF::nkf('-Ew -m0', str)
         end
+
+        # Not used
+        def close_decorations()
+               r = ''
+               while @decoration.length > 0 do
+                        case @decoration.pop
+                        when 1
+                                r += '\</i\>'
+                        when 3
+                                r += '\</b\>'
+                        end
+                end
+                return r
+        end
+
 end

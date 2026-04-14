@@ -1,7 +1,15 @@
-#!/nix/store/rrgcfbqf6w9lapnnxgm6p5hb4jkz3lb9-ruby-3.3.10-with-packages/bin/ruby
+#!/usr/bin/env ruby
+
+def get_index()
+        @path_cd = File::dirname( __FILE__ )
+        @path =  "#{@path_cd}/skel/index.html"
+        File::open( @path , "r:utf-8" ) {|f| f.read }
+end
+
 begin
-	require 'letmesee.rb'
+	require_relative './letmesee.rb'
 	@cgi = CGI.new
+	is_index = false
 
 	if @cgi.valid?( 'mode' ) then
 		case @cgi.params['mode'][0]
@@ -16,12 +24,18 @@ begin
 			l.send( l.mode )
 			exit
 			else
-			l = LetMeSee::new( @cgi, 'help.rhtml' )
+			if @cgi.params['output'][0] == 'xml' then
+				l = LetMeSee::new( @cgi, 'help.rhtml' )
+			else
+				is_index = true
+			end
 		end
 	elsif @cgi.valid?( 'query' ) then
 		l = LetMeSee::new( @cgi, 'search.rhtml' )
-	else
+	elsif @cgi.params['output'][0] == 'xml' then
 		l = LetMeSee::new( @cgi, 'help.rhtml' )
+	else
+		is_index = true
 	end
 
 	head = {
@@ -29,8 +43,9 @@ begin
 		'Vary' => 'User-Agent',
 		'charset' => 'UTF-8'
 	}
-	body = l.eval_rhtml
-	head['Content-Length'] = body.size.to_s
+	body = is_index ? get_index() : l.eval_rhtml
+	#body = l.eval_rhtml
+	head['Content-Length'] = body.bytesize.to_s
 	head['Pragma'] = 'no-cache'
 	head['Cache-Control'] = 'no-cache'
 	print @cgi.header( head )
@@ -38,8 +53,9 @@ begin
 rescue SystemExit
 	# normal exit for binary data
 rescue Exception
-	print "Content-Type: text/plain\r\n\r\n"
+	print "Content-Type: text/plain\n\n"
 	puts "#$! (#{$!.class})"
 	puts ""
 	puts $@.join( "\n" )
 end
+

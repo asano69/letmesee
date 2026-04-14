@@ -1,0 +1,30 @@
+services:
+  letmesee-orig:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: letmesee-orig
+    restart: always
+    volumes:
+      - /mnt/zotero/dictionary/epwing:/usr/local/dict:ro
+      - ./letmesee.conf:/usr/local/apache2/htdocs/letmesee.conf:ro
+    # Uncomment to access directly without Traefik:
+    # ports:
+    #   - "8081:80"
+    networks:
+      - traefik_br
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_br"
+      - "traefik.http.routers.letmesee-orig-http.rule=Host(`letmesee-orig.app.internal`)"
+      - "traefik.http.routers.letmesee-orig-http.entrypoints=web"
+      - "traefik.http.routers.letmesee-orig-http.middlewares=force-https@file"
+      - "traefik.http.routers.letmesee-orig.rule=Host(`letmesee-orig.app.internal`)"
+      - "traefik.http.routers.letmesee-orig.entrypoints=websecure"
+      - "traefik.http.routers.letmesee-orig.tls=true"
+      - "traefik.http.routers.letmesee-orig.service=letmesee-orig"
+      - "traefik.http.routers.letmesee-orig.middlewares=hsts@file"
+      - "traefik.http.services.letmesee-orig.loadbalancer.server.port=80"
+networks:
+  traefik_br:
+    external: true
