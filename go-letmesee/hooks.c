@@ -383,16 +383,16 @@ read_text_full(EB_Book *book, EB_Appendix *appendix,
         /* EB_ERR_END_OF_CONTENT signals normal end; any other error aborts. */
         if (rc == EB_ERR_END_OF_CONTENT) break;
         if (rc != EB_SUCCESS) break;
-        if (chunk > 0) {
-            if (total + (size_t)chunk + 1 >= alloc) {
-                alloc = (total + (size_t)chunk) * 2 + 1;
-                char *tmp = (char *)realloc(result, alloc);
-                if (!tmp) { free(result); *out_len = 0; return NULL; }
-                result = tmp;
-            }
-            memcpy(result + total, buf, (size_t)chunk);
-            total += (size_t)chunk;
+        /* Some EB versions signal end-of-content with SUCCESS + zero bytes. */
+        if (chunk <= 0) break;
+        if (total + (size_t)chunk + 1 >= alloc) {
+            alloc = (total + (size_t)chunk) * 2 + 1;
+            char *tmp = (char *)realloc(result, alloc);
+            if (!tmp) { free(result); *out_len = 0; return NULL; }
+            result = tmp;
         }
+        memcpy(result + total, buf, (size_t)chunk);
+        total += (size_t)chunk;
     }
     result[total] = '\0';
     *out_len = total;

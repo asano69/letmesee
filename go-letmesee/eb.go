@@ -22,6 +22,7 @@ import (
 	"image/color"
 	"image/png"
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -92,7 +93,9 @@ func (hc *HookContext) Free() {
 
 // Subbook wraps a bound EB_Book selected to a specific subbook,
 // together with an optional appendix and a pre-built hookset.
+// mu serialises all EB library calls because EB_Book is not thread-safe.
 type Subbook struct {
+	mu       sync.Mutex
 	book     *C.EB_Book
 	appendix *C.EB_Appendix
 	hookset  *C.EB_Hookset
@@ -230,6 +233,9 @@ func openAppendix(path string) *C.EB_Appendix {
 // to maxHit de-duplicated results.
 // queryEUC must already be in EUC-JP encoding.
 func (s *Subbook) Search(mode, queryEUC string, maxHit int, hc *HookContext) ([]Hit, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	cQuery := C.CString(queryEUC)
 	defer C.free(unsafe.Pointer(cQuery))
 
@@ -242,19 +248,18 @@ func (s *Subbook) Search(mode, queryEUC string, maxHit int, hc *HookContext) ([]
 	case "endsearch":
 		rc = C.eb_search_endword(s.book, cQuery)
 	case "keywordsearch":
-		rc = s.searchKeyword(queryEUC)
+		rc = s.searchKeywordLocked(queryEUC)
 	default:
 		rc = C.eb_search_exactword(s.book, cQuery)
 	}
 	if rc != C.EB_SUCCESS {
 		return nil, nil
 	}
-	return s.collectHits(maxHit, hc)
+	return s.collectHitsLocked(maxHit, hc)
 }
 
-// searchKeyword splits queryEUC on ASCII whitespace and EUC-JP
-// ideographic space (\xa1\xa1), then calls eb_search_keyword.
-func (s *Subbook) searchKeyword(queryEUC string) C.EB_Error_Code {
+// searchKeywordLocked must be called with s.mu held.
+func (s *Subbook) searchKeywordLocked(queryEUC string) C.EB_Error_Code {
 	parts := strings.FieldsFunc(queryEUC, func(r rune) bool {
 		return r == ' ' || r == '\t'
 	})
@@ -283,7 +288,8 @@ func (s *Subbook) searchKeyword(queryEUC string) C.EB_Error_Code {
 		(**C.char)(unsafe.Pointer(&cWords[0])))
 }
 
-func (s *Subbook) collectHits(maxHit int, hc *HookContext) ([]Hit, error) {
+// collectHitsLocked must be called with s.mu held.
+func (s *Subbook) collectHitsLocked(maxHit int, hc *HookContext) ([]Hit, error) {
 	hits := make([]C.EB_Hit, maxHit)
 	var hitCount C.int
 	if rc := C.eb_hit_list(s.book, C.int(maxHit), &hits[0], &hitCount); rc != C.EB_SUCCESS {
@@ -331,6 +337,13 @@ func (s *Subbook) collectHits(maxHit int, hc *HookContext) ([]Hit, error) {
 
 // Content reads text at an arbitrary page/offset position.
 func (s *Subbook) Content(page, offset int, hc *HookContext) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.contentLocked(page, offset, hc)
+}
+
+// contentLocked must be called with s.mu held.
+func (s *Subbook) contentLocked(page, offset int, hc *HookContext) (string, error) {
 	pos := C.EB_Position{page: C.int(page), offset: C.int(offset)}
 	if rc := C.eb_seek_text(s.book, &pos); rc != C.EB_SUCCESS {
 		return "", fmt.Errorf("eb_seek_text: %s", ebErrStr(rc))
@@ -346,6 +359,8 @@ func (s *Subbook) Content(page, offset int, hc *HookContext) (string, error) {
 
 // Menu reads the book's menu entry, if available.
 func (s *Subbook) Menu(hc *HookContext) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if C.eb_have_menu(s.book) == 0 {
 		return "", nil
 	}
@@ -353,11 +368,13 @@ func (s *Subbook) Menu(hc *HookContext) (string, error) {
 	if rc := C.eb_menu(s.book, &pos); rc != C.EB_SUCCESS {
 		return "", nil
 	}
-	return s.Content(int(pos.page), int(pos.offset), hc)
+	return s.contentLocked(int(pos.page), int(pos.offset), hc)
 }
 
 // Copyright reads the book's copyright entry, if available.
 func (s *Subbook) Copyright(hc *HookContext) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if C.eb_have_copyright(s.book) == 0 {
 		return "", nil
 	}
@@ -365,7 +382,7 @@ func (s *Subbook) Copyright(hc *HookContext) (string, error) {
 	if rc := C.eb_copyright(s.book, &pos); rc != C.EB_SUCCESS {
 		return "", nil
 	}
-	return s.Content(int(pos.page), int(pos.offset), hc)
+	return s.contentLocked(int(pos.page), int(pos.offset), hc)
 }
 
 // ------------------------------------------------------------------ //
@@ -375,6 +392,8 @@ func (s *Subbook) Copyright(hc *HookContext) (string, error) {
 // ReadColorGraphic reads a color graphic (BMP or JPEG) at the given
 // position and returns the raw bytes.
 func (s *Subbook) ReadColorGraphic(page, offset int) ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	pos := C.EB_Position{page: C.int(page), offset: C.int(offset)}
 	if rc := C.eb_set_binary_color_graphic(s.book, &pos); rc != C.EB_SUCCESS {
 		return nil, fmt.Errorf("eb_set_binary_color_graphic: %s", ebErrStr(rc))
@@ -385,6 +404,8 @@ func (s *Subbook) ReadColorGraphic(page, offset int) ([]byte, error) {
 // ReadMonoGraphic reads a monochrome graphic and returns the raw BMP bytes.
 // height and width are in pixels as reported by the HOOK_BEGIN_MONO_GRAPHIC callback.
 func (s *Subbook) ReadMonoGraphic(page, offset, width, height int) ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	pos := C.EB_Position{page: C.int(page), offset: C.int(offset)}
 	// EB library expects (height, width) in that order.
 	if rc := C.eb_set_binary_mono_graphic(s.book, &pos, C.int(height), C.int(width)); rc != C.EB_SUCCESS {
@@ -395,6 +416,8 @@ func (s *Subbook) ReadMonoGraphic(page, offset, width, height int) ([]byte, erro
 
 // ReadWave reads WAVE audio data between two positions and returns the raw bytes.
 func (s *Subbook) ReadWave(page, offset, page2, offset2 int) ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	start := C.EB_Position{page: C.int(page), offset: C.int(offset)}
 	end := C.EB_Position{page: C.int(page2), offset: C.int(offset2)}
 	if rc := C.eb_set_binary_wave(s.book, &start, &end); rc != C.EB_SUCCESS {
@@ -406,6 +429,8 @@ func (s *Subbook) ReadWave(page, offset, page2, offset2 int) ([]byte, error) {
 // ReadMPEG reads MPEG movie data identified by two page/offset pairs.
 // The four values correspond to what the HOOK_BEGIN_MPEG callback receives.
 func (s *Subbook) ReadMPEG(page, offset, page2, offset2 int) ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	// eb_set_binary_mpeg takes an array of 4 unsigned ints.
 	argv := [4]C.uint{C.uint(page), C.uint(offset), C.uint(page2), C.uint(offset2)}
 	if rc := C.eb_set_binary_mpeg(s.book, &argv[0]); rc != C.EB_SUCCESS {
@@ -437,6 +462,8 @@ func drainBinary(book *C.EB_Book) ([]byte, error) {
 
 // WideGaiji returns the wide gaiji glyph as a PNG image.
 func (s *Subbook) WideGaiji(code, fontCode int) ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	C.eb_set_font(s.book, C.EB_Font_Code(fontCode))
 	size := wideGlyphBytes(fontCode)
 	buf := make([]byte, size)
@@ -450,6 +477,8 @@ func (s *Subbook) WideGaiji(code, fontCode int) ([]byte, error) {
 
 // NarrowGaiji returns the narrow gaiji glyph as a PNG image.
 func (s *Subbook) NarrowGaiji(code, fontCode int) ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	C.eb_set_font(s.book, C.EB_Font_Code(fontCode))
 	size := narrowGlyphBytes(fontCode)
 	buf := make([]byte, size)
