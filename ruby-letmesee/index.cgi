@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#!/nix/store/rrgcfbqf6w9lapnnxgm6p5hb4jkz3lb9-ruby-3.3.10-with-packages/bin/ruby
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 begin
 	require_relative 'letmesee'
