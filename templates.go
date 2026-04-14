@@ -1,10 +1,19 @@
 package main
 
-import "html/template"
+import (
+	"html/template"
+	"log"
+	"os"
+	"path/filepath"
+)
 
 // Templates mirror the skel/ directory from the original Ruby application.
 // Each template uses the same CSS class names as the default theme so that
 // existing tDiary-compatible stylesheets keep working unchanged.
+//
+// Templates are loaded from the "templates/" directory on disk at startup so
+// they can be edited without recompiling. Built-in fallback strings are used
+// when the file is missing, keeping the binary self-contained.
 
 // tmplHeader is the page header, equivalent to skel/header.rhtml.
 const tmplHeader = `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
@@ -80,6 +89,117 @@ const tmplHelp = `    <hr class="sep">
     </div>
 `
 
+// tmplIndex is the standalone landing page shown before any query is made,
+// equivalent to skel/index.html. It uses a minimal Google-style layout.
+const tmplIndex = `<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>let me see...</title>
+    <style type="text/css">
+      .input_box {
+        border-width: 1px;
+        border-color: rgb(223, 225, 229);
+        border-radius: 24px;
+        border-style: solid;
+        margin: 0 auto;
+        max-width: 500px;
+        width: auto;
+      }
+      .input_box:hover {
+        box-shadow: 0 1px 6px rgba(32,33,36,.28);
+        border-color: rgba(223,225,229,0);
+      }
+      .input_box input {
+        border-color: transparent;
+        margin: 5px;
+        font-size: small;
+        padding: 8px 15px;
+        width: 100%;
+        background-color: transparent;
+        box-sizing: border-box;
+      }
+      input[type="submit"] {
+        background-color: #f2f2f2;
+        border: 1px solid #f2f2f2;
+        border-radius: 4px;
+        color: #5F6368;
+        font-size: 14px;
+        margin: 11px 4px;
+        padding: 0 16px;
+        line-height: 27px;
+        height: 36px;
+        min-width: 54px;
+        text-align: center;
+        cursor: pointer;
+        user-select: none;
+      }
+      input[type="submit"]:hover {
+        box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+        background-color: #f8f8f8;
+        border: 1px solid #c6c6c6;
+        color: #222;
+      }
+      input[type="submit"]:focus {
+        border: 1px solid #4d90fe;
+        outline: none;
+      }
+      img.logo {
+        height: 100px;
+        margin-top: 47px;
+        margin-bottom: 10px;
+      }
+      select {
+        padding: 8px 38px 8px 8px;
+        margin: 5px;
+      }
+      .message p {
+        font-size: 1.1rem;
+        font-family: Arial,Helvetica,sans-serif;
+        font-weight: 300;
+        color: #5f6368;
+      }
+    </style>
+  </head>
+  <body>
+    <form method="get" action="">
+      <div>
+        <center>
+          <img class="logo" src="logo.png" />
+        </center>
+        <div class="input_box">
+          <input type="text" name="query" size="20" value="">
+        </div>
+        <center class="submits">
+          <input type="submit" value="検索">
+        </center>
+        <center class="selects">
+          <select name="mode">
+            <option value="exactsearch">完全一致</option>
+            <option value="search" selected>前方一致</option>
+            <option value="endsearch">後方一致</option>
+            <option value="keywordsearch">条件検索</option>
+            <option value="menu">メニュー</option>
+            <option value="copyright">著作権表示</option>
+          </select><!--
+          --><select name="maxhit">
+            <option selected value="10">10件</option>
+            <option value="20">20件</option>
+            <option value="50">50件</option>
+          </select>
+        </center>
+        <center class="message">
+          <p>
+            let me see... は電子辞書検索ページです。
+          </p>
+        </center>
+      </div>
+    </form>
+  </body>
+</html>
+`
+
 // tmplSearch renders search results, equivalent to skel/search.rhtml.
 const tmplSearch = `{{range .Results}}
     <hr class="sep">
@@ -149,12 +269,29 @@ const tmplReference = `{{with .Item}}
 {{end}}
 `
 
+// loadTemplate reads a template from templates/<name> on disk if available,
+// falling back to the supplied built-in string. This lets operators customise
+// templates without recompiling the binary.
+func loadTemplate(name, builtin string) *template.Template {
+	path := filepath.Join("templates", name)
+	if data, err := os.ReadFile(path); err == nil {
+		t, err := template.New(name).Parse(string(data))
+		if err != nil {
+			log.Printf("template %s: parse error: %v — using built-in", path, err)
+		} else {
+			return t
+		}
+	}
+	return template.Must(template.New(name).Parse(builtin))
+}
+
 // Parsed template instances, initialised once at startup.
 var (
-	tHeader    = template.Must(template.New("header").Parse(tmplHeader))
-	tFooter    = template.Must(template.New("footer").Parse(tmplFooter))
-	tHelp      = template.Must(template.New("help").Parse(tmplHelp))
-	tSearch    = template.Must(template.New("search").Parse(tmplSearch))
-	tMenu      = template.Must(template.New("menu").Parse(tmplMenu))
-	tReference = template.Must(template.New("reference").Parse(tmplReference))
+	tHeader    = loadTemplate("header.html", tmplHeader)
+	tFooter    = loadTemplate("footer.html", tmplFooter)
+	tHelp      = loadTemplate("help.html", tmplHelp)
+	tIndex     = loadTemplate("index.html", tmplIndex)
+	tSearch    = loadTemplate("search.html", tmplSearch)
+	tMenu      = loadTemplate("menu.html", tmplMenu)
+	tReference = loadTemplate("reference.html", tmplReference)
 )

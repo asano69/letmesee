@@ -144,6 +144,12 @@ func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Show the simple landing page when there is no query and no search mode.
+	if p.Query == "" && !isSearchMode(p.Mode) && p.Mode != "menu" && p.Mode != "copyright" && p.Mode != "reference" {
+		h.renderIndex(w)
+		return
+	}
+
 	// All remaining modes produce an HTML page: header + body + footer.
 	var buf bytes.Buffer
 	h.renderHeader(&buf, p)
@@ -167,6 +173,16 @@ func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Pragma", "no-cache")
 	w.Write(buf.Bytes())
+}
+
+// renderIndex serves the landing page (skel/index.html equivalent).
+// It is a standalone HTML page with no header/footer wrapper.
+func (h *appHandler) renderIndex(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	if err := tIndex.Execute(w, nil); err != nil {
+		log.Printf("tIndex: %v", err)
+	}
 }
 
 func isSearchMode(m string) bool {
@@ -330,12 +346,12 @@ func (a *App) ReadMPEG(bookIdx, page, offset, page2, offset2 int) ([]byte, error
 // ---- Entry point ----------------------------------------------------
 
 func main() {
-	// Explicitly register MIME types that may be missing or wrong in the
-	// host OS database.  Without this, FileServer can serve .css as
+	// Explicitly register MIME types that may be absent or wrong in the
+	// host OS MIME database. Without this, FileServer can serve .css as
 	// text/plain, which browsers block when X-Content-Type-Options: nosniff
 	// is in effect.
-	mime.AddExtensionType(".css", "text/css")
-	mime.AddExtensionType(".js", "application/javascript")
+	mime.AddExtensionType(".css", "text/css; charset=utf-8")
+	mime.AddExtensionType(".js", "application/javascript; charset=utf-8")
 
 	configPath := flag.String("config", "letmesee.json", "path to JSON config file")
 	listen := flag.String("listen", ":8080", "address to listen on (host:port)")
@@ -365,7 +381,9 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/", &appHandler{app: app})
 	// Serve theme CSS and assets from ./theme/ on disk.
-	mux.Handle("/theme/", http.StripPrefix("/theme/", http.FileServer(http.Dir("theme"))))
+	// cssFileServer wraps http.FileServer to guarantee correct MIME types
+	// regardless of the host OS MIME database.
+	mux.Handle("/theme/", cssFileServer(http.Dir(".")))
 
 	log.Printf("listening on %s", *listen)
 
@@ -382,4 +400,22 @@ func main() {
 	if err := http.ListenAndServe(*listen, mux); err != nil {
 		log.Fatalf("listen: %v", err)
 	}
+}
+
+// cssFileServer returns a handler that serves static files while forcing
+// correct Content-Type headers for CSS and JS files. Go's http.FileServer
+// falls back to the OS MIME database, which may return "text/plain" for
+// .css files on some systems. Browsers with X-Content-Type-Options: nosniff
+// will then refuse to apply the stylesheet.
+func cssFileServer(root http.FileSystem) http.Handler {
+	fs := http.FileServer(root)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case len(r.URL.Path) > 4 && r.URL.Path[len(r.URL.Path)-4:] == ".css":
+			w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		case len(r.URL.Path) > 3 && r.URL.Path[len(r.URL.Path)-3:] == ".js":
+			w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+		}
+		fs.ServeHTTP(w, r)
+	})
 }

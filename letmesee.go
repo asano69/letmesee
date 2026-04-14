@@ -370,11 +370,16 @@ func buildDictParams(dicts []int) string {
 var (
 	reRef     = regexp.MustCompile(`<reference>(.*?)</reference ([^>]+)>`)
 	reMonoGfx = regexp.MustCompile(`<mono_graphic ([^>]+)>(.*?)</mono_graphic ([^>]+)>`)
+	// reDecoTag matches <deco_TAG> and </deco_TAG> pairs emitted by hooks.
+	// The Ruby port changed emphasis hooks to use <deco_strong>, <deco_i>,
+	// <deco_b>, <deco_sub>, <deco_sup> so that html_output can expand them.
+	reDecoOpen  = regexp.MustCompile(`<deco_([a-z]+)>`)
+	reDecoClose = regexp.MustCompile(`</deco_([a-z]+)>`)
 )
 
 // htmlOutput mirrors the Ruby html_output method: it unescapes the
 // \< / \> markers written by hook callbacks and expands the special
-// <reference> and <mono_graphic> pseudo-tags into real HTML.
+// <reference>, <mono_graphic>, and <deco_X> pseudo-tags into real HTML.
 func (a *App) htmlOutput(s string) template.HTML {
 	s = strings.ReplaceAll(s, `\<`, "<")
 	s = strings.ReplaceAll(s, `\>`, ">")
@@ -400,6 +405,12 @@ func (a *App) htmlOutput(s string) template.HTML {
 			`<img src="%s?mode=mono_graphic&amp;%s&amp;%s" alt="%s">`,
 			a.cfg.IndexURL, posAttrs, dimAttrs, alt)
 	})
+
+	// Expand <deco_TAG> / </deco_TAG> into real HTML elements.
+	// Unknown tag names pass through harmlessly because browsers ignore
+	// unrecognised tags; only well-known inline elements are emitted.
+	s = reDecoOpen.ReplaceAllString(s, "<$1>")
+	s = reDecoClose.ReplaceAllString(s, "</$1>")
 
 	return template.HTML(s)
 }
