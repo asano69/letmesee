@@ -198,7 +198,6 @@ var irregularVerbs = map[string]string{
 	"yourselves": "oneself", "themselves": "oneself",
 }
 
-// isVowel reports whether b is an ASCII vowel (including 'y').
 func isVowel(b byte) bool {
 	switch b {
 	case 'a', 'e', 'i', 'o', 'u', 'y':
@@ -207,7 +206,6 @@ func isVowel(b byte) bool {
 	return false
 }
 
-// hasVowel reports whether s contains at least one vowel.
 func hasVowel(s string) bool {
 	for i := 0; i < len(s); i++ {
 		if isVowel(s[i]) {
@@ -217,43 +215,31 @@ func hasVowel(s string) bool {
 	return false
 }
 
-// hasCVC returns true when s matches the pattern consonant*vowel*consonant
-// (i.e. ends with at least one C after a V after optional leading Cs).
-// This mirrors the Ruby M regexp check used in stemImpl.
-func hasCVC(s string) bool {
-	// We need at least one vowel cluster in s.
-	return hasVowel(s)
-}
-
-// stemImpl returns all candidate base forms for a single lowercase word.
-// It is a Go port of Stem#stem_impl from stem.rb.
+// stemImpl returns all candidate base forms for a single lowercase ASCII word.
+// Ported from Stem#stem_impl in stem.rb.
 func stemImpl(word string) []string {
 	if len(word) < 3 {
 		return []string{word}
 	}
-	// Only ASCII words.
 	for _, c := range word {
 		if c > 127 {
 			return []string{word}
 		}
 	}
-	// Apostrophe: strip suffix.
 	if idx := strings.IndexByte(word, '\''); idx >= 0 {
 		return []string{word, word[:idx]}
 	}
 
 	// -s endings
 	if strings.HasSuffix(word, "s") {
-		stem := word[:len(word)-1]
 		if strings.HasSuffix(word, "sses") || strings.HasSuffix(word, "shes") {
 			return []string{word, word[:len(word)-2]}
 		}
 		if strings.HasSuffix(word, "ies") {
-			return []string{word, stem[:len(stem)-1] + "y", stem}
+			stem := word[:len(word)-3]
+			return []string{word, stem + "y", stem + "ie"}
 		}
-		if strings.HasSuffix(word, "sses") {
-			return []string{word, word[:len(word)-2]}
-		}
+		stem := word[:len(word)-1]
 		if len(stem) > 0 && stem[len(stem)-1] != 's' {
 			return []string{word, stem}
 		}
@@ -269,15 +255,15 @@ func stemImpl(word string) []string {
 			stem = word[:len(word)-3]
 		}
 		if strings.HasSuffix(word, "ied") {
-			return []string{word, stem + "y", stem}
+			return []string{word, stem + "y", stem + "ie"}
 		}
 		if strings.HasSuffix(word, "eed") {
-			if hasCVC(word[:len(word)-3]) {
+			if hasVowel(word[:len(word)-3]) {
 				return []string{word, word[:len(word)-1]}
 			}
 			return []string{word}
 		}
-		if hasCVC(stem) {
+		if hasVowel(stem) {
 			if strings.HasSuffix(stem, "at") || strings.HasSuffix(stem, "bl") || strings.HasSuffix(stem, "v") {
 				return []string{word, stem + "e"}
 			}
@@ -303,7 +289,7 @@ func stemImpl(word string) []string {
 		if strings.HasSuffix(word, "ier") || strings.HasSuffix(word, "iest") {
 			return []string{word, stem + "y"}
 		}
-		if hasCVC(stem) {
+		if hasVowel(stem) {
 			if strings.HasSuffix(stem, "at") || strings.HasSuffix(stem, "bl") ||
 				strings.HasSuffix(stem, "iz") || strings.HasSuffix(stem, "nc") ||
 				strings.HasSuffix(stem, "v") {

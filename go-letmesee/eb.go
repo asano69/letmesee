@@ -280,8 +280,7 @@ func (s *Subbook) searchKeyword(queryEUC string) C.EB_Error_Code {
 		}
 	}()
 	return C.eb_search_keyword(s.book,
-		(**C.char)(unsafe.Pointer(&cWords[0])),
-		C.int(len(words)))
+		(**C.char)(unsafe.Pointer(&cWords[0])))
 }
 
 func (s *Subbook) collectHits(maxHit int, hc *HookContext) ([]Hit, error) {
