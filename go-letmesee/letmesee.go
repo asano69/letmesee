@@ -235,14 +235,15 @@ func (a *App) Search(p Params) []SearchResult {
 // trySearch tries each stemmed variant of the query until a non-empty
 // result is returned, mirroring the Ruby search loop.
 func (a *App) trySearch(sub *Subbook, p Params, hc *HookContext) []Hit {
-	// Convert query to EUC-JP (after stripping diacritics for ASCII).
-	queryEUC, err := utf8ToEUC(convertToASCII(p.Query))
-	if err != nil {
-		queryEUC = p.Query
-	}
+	// Stem works on UTF-8; apply it before converting to EUC-JP.
+	variants := strings.Split(Stem(convertToASCII(p.Query)), "|")
 
-	for _, variant := range strings.Split(Stem(queryEUC), "|") {
-		hits, _ := sub.Search(p.Mode, variant, p.MaxHit, hc)
+	for _, variant := range variants {
+		queryEUC, err := utf8ToEUC(variant)
+		if err != nil {
+			queryEUC = variant
+		}
+		hits, _ := sub.Search(p.Mode, queryEUC, p.MaxHit, hc)
 		if len(hits) > 0 {
 			return hits
 		}
@@ -354,7 +355,7 @@ func (a *App) makeHookContext(bookIdx int, dictSel []int) *HookContext {
 func buildDictParams(dicts []int) string {
 	var b strings.Builder
 	for _, d := range dicts {
-		fmt.Fprintf(&b, ";dict=%d", d)
+		fmt.Fprintf(&b, "&dict=%d", d)
 	}
 	return b.String()
 }

@@ -20,7 +20,7 @@ hook_wide_font(EB_Book *book, EB_Appendix *app, void *container,
     EBHookContext *ctx = (EBHookContext *)container;
     char buf[512];
     snprintf(buf, sizeof(buf),
-             "\\<img src=\"%s?book=%d;mode=gaiji_w;code=%u\""
+             "\\<img src=\"%s?book=%d&mode=gaiji_w&code=%u\""
              " alt=\"_\" width=\"%d\" height=\"%d\"\\>",
              ctx->index_url, ctx->book_index, argv[0],
              ctx->fontsize_w, ctx->fontsize);
@@ -35,7 +35,7 @@ hook_narrow_font(EB_Book *book, EB_Appendix *app, void *container,
     EBHookContext *ctx = (EBHookContext *)container;
     char buf[512];
     snprintf(buf, sizeof(buf),
-             "\\<img src=\"%s?book=%d;mode=gaiji_n;code=%u\""
+             "\\<img src=\"%s?book=%d&mode=gaiji_n&code=%u\""
              " alt=\"_\" width=\"%d\" height=\"%d\"\\>",
              ctx->index_url, ctx->book_index, argv[0],
              ctx->fontsize_n, ctx->fontsize);
@@ -106,7 +106,7 @@ hook_end_reference(EB_Book *book, EB_Appendix *app, void *container,
     EBHookContext *ctx = (EBHookContext *)container;
     char buf[2048];
     snprintf(buf, sizeof(buf),
-             "\\</reference book=%d;page=%u;offset=%u%s\\>\\</span\\>",
+             "\\</reference book=%d&page=%u&offset=%u%s\\>\\</span\\>",
              ctx->book_index, argv[1], argv[2], ctx->dict_params);
     eb_write_text_string(book, buf);
     return EB_SUCCESS;
@@ -127,7 +127,7 @@ hook_end_candidate_group(EB_Book *book, EB_Appendix *app, void *container,
     EBHookContext *ctx = (EBHookContext *)container;
     char buf[2048];
     snprintf(buf, sizeof(buf),
-             "\\</reference book=%d;page=%u;offset=%u%s\\>\\</span\\>",
+             "\\</reference book=%d&page=%u&offset=%u%s\\>\\</span\\>",
              ctx->book_index, argv[1], argv[2], ctx->dict_params);
     eb_write_text_string(book, buf);
     return EB_SUCCESS;
@@ -140,7 +140,7 @@ hook_begin_mono_graphic(EB_Book *book, EB_Appendix *app, void *container,
     char buf[256];
     /* argv[3] = width, argv[2] = height */
     snprintf(buf, sizeof(buf),
-             "\\<mono_graphic width=%u;height=%u\\>", argv[3], argv[2]);
+             "\\<mono_graphic width=%u&height=%u\\>", argv[3], argv[2]);
     eb_write_text_string(book, buf);
     return EB_SUCCESS;
 }
@@ -152,7 +152,7 @@ hook_end_mono_graphic(EB_Book *book, EB_Appendix *app, void *container,
     EBHookContext *ctx = (EBHookContext *)container;
     char buf[256];
     snprintf(buf, sizeof(buf),
-             "\\</mono_graphic book=%d;page=%u;offset=%u\\>",
+             "\\</mono_graphic book=%d&page=%u&offset=%u\\>",
              ctx->book_index, argv[1], argv[2]);
     eb_write_text_string(book, buf);
     return EB_SUCCESS;
@@ -166,12 +166,12 @@ hook_begin_color_bmp(EB_Book *book, EB_Appendix *app, void *container,
     char buf[512];
     if (ctx->force_inline) {
         snprintf(buf, sizeof(buf),
-                 "\\<img src=\"%s?mode=bmp;book=%d;page=%u;offset=%u\""
+                 "\\<img src=\"%s?mode=bmp&book=%d&page=%u&offset=%u\""
                  " alt=\"[image]\"\\>",
                  ctx->index_url, ctx->book_index, argv[2], argv[3]);
     } else {
         snprintf(buf, sizeof(buf),
-                 "\\<a href=\"%s?mode=bmp;book=%d;page=%u;offset=%u\"\\>[image] ",
+                 "\\<a href=\"%s?mode=bmp&book=%d&page=%u&offset=%u\"\\>[image] ",
                  ctx->index_url, ctx->book_index, argv[2], argv[3]);
     }
     eb_write_text_string(book, buf);
@@ -186,12 +186,12 @@ hook_begin_color_jpeg(EB_Book *book, EB_Appendix *app, void *container,
     char buf[512];
     if (ctx->force_inline) {
         snprintf(buf, sizeof(buf),
-                 "\\<img src=\"%s?mode=jpeg;book=%d;page=%u;offset=%u\""
+                 "\\<img src=\"%s?mode=jpeg&book=%d&page=%u&offset=%u\""
                  " alt=\"[image]\"\\>",
                  ctx->index_url, ctx->book_index, argv[2], argv[3]);
     } else {
         snprintf(buf, sizeof(buf),
-                 "\\<a href=\"%s?mode=jpeg;book=%d;page=%u;offset=%u\"\\>[image] ",
+                 "\\<a href=\"%s?mode=jpeg&book=%d&page=%u&offset=%u\"\\>[image] ",
                  ctx->index_url, ctx->book_index, argv[2], argv[3]);
     }
     eb_write_text_string(book, buf);
@@ -217,7 +217,7 @@ hook_begin_in_color_bmp(EB_Book *book, EB_Appendix *app, void *container,
     EBHookContext *ctx = (EBHookContext *)container;
     char buf[512];
     snprintf(buf, sizeof(buf),
-             "\\<img src=\"%s?mode=bmp;book=%d;page=%u;offset=%u\""
+             "\\<img src=\"%s?mode=bmp&book=%d&page=%u&offset=%u\""
              " alt=\"[image]\"\\>",
              ctx->index_url, ctx->book_index, argv[2], argv[3]);
     eb_write_text_string(book, buf);
@@ -231,7 +231,7 @@ hook_begin_in_color_jpeg(EB_Book *book, EB_Appendix *app, void *container,
     EBHookContext *ctx = (EBHookContext *)container;
     char buf[512];
     snprintf(buf, sizeof(buf),
-             "\\<img src=\"%s?mode=jpeg;book=%d;page=%u;offset=%u\""
+             "\\<img src=\"%s?mode=jpeg&book=%d&page=%u&offset=%u\""
              " alt=\"[image]\"\\>",
              ctx->index_url, ctx->book_index, argv[2], argv[3]);
     eb_write_text_string(book, buf);
@@ -246,8 +246,8 @@ hook_begin_wave(EB_Book *book, EB_Appendix *app, void *container,
     EBHookContext *ctx = (EBHookContext *)container;
     char buf[512];
     snprintf(buf, sizeof(buf),
-             "\\<a href=\"%s?mode=wave;book=%d"
-             ";page=%u;offset=%u;page2=%u;offset2=%u\"\\>[audio] ",
+             "\\<a href=\"%s?mode=wave&book=%d"
+             "&page=%u&offset=%u&page2=%u&offset2=%u\"\\>[audio] ",
              ctx->index_url, ctx->book_index,
              argv[2], argv[3], argv[4], argv[5]);
     eb_write_text_string(book, buf);
@@ -269,8 +269,8 @@ hook_begin_mpeg(EB_Book *book, EB_Appendix *app, void *container,
     EBHookContext *ctx = (EBHookContext *)container;
     char buf[512];
     snprintf(buf, sizeof(buf),
-             "\\<a href=\"%s?mode=mpeg;book=%d"
-             ";page=%u;offset=%u;page2=%u;offset2=%u\"\\>[video] ",
+             "\\<a href=\"%s?mode=mpeg&book=%d"
+             "&page=%u&offset=%u&page2=%u&offset2=%u\"\\>[video] ",
              ctx->index_url, ctx->book_index,
              argv[2], argv[3], argv[4], argv[5]);
     eb_write_text_string(book, buf);
