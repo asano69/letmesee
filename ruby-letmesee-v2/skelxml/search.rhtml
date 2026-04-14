@@ -1,0 +1,20 @@
+<%
+dict.each do |book|
+        book = book.to_i
+	item = search( book )
+        if (item && item.length != 0) then
+%>
+    <resultgroup dictionary="<%= conv(dicts[book].title) %>" dictionary_id="<%= conv(book.to_s) %>" >
+<%
+		item.each do |item|
+%>
+      <result>
+        <l:title xmlns="http://www.w3.org/1999/xhtml"><%= html_output(conv(item[0])) %></title>
+        <l:content xmlns="http://www.w3.org/1999/xhtml"><%= html_output(conv(item[1])) %></content>
+      </result>
+<% end %>
+    </resultgroup>
+<%
+	end
+end
+%>

@@ -1,0 +1,19 @@
+<%
+dict.each do |book|
+	book = book.to_i
+	case mode
+		when 'menu'; item = menu( book )
+		when 'copyright'; item = copyright( book )
+	end
+        if ( item && item.length != 0 ) then
+%>
+    <resultgroup dictionary="<%= conv(dicts[book].title) %>" dictionary_id="<%= conv(book.to_s) %>" >
+      <result>
+        <l:title xmlns="http://www.w3.org/1999/xhtml"><%= html_output(conv(dicts[book].title)) %></title>
+        <l:content xmlns="http://www.w3.org/1999/xhtml"><%= html_output(conv(item)) %></content>
+      </result>
+    </resultgroup>
+<%
+	end
+end
+%>

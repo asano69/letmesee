@@ -1,0 +1,12 @@
+<%
+item = content( book )
+if item then
+%>
+    <resultgroup dictionary="<%= conv(dicts[book].title) %>" dictionary_id="<%= conv(book.to_s) %>" >
+      <result>
+        <l:content xmlns="http://www.w3.org/1999/xhtml"><%= html_output(conv(item)) %></content>
+      </result>
+    </resultgroup>
+<%
+end
+%>

@@ -1,0 +1,10 @@
+  </results>
+  <versions>
+    <version title="let me see..." ref="http://openlab.jp/edict/letmesee/" version="<%= LetMeSee_VERSION %>" />
+    <version title="Ruby" ref="http://www.ruby-lang.org/" version="<%= RUBY_VERSION %>" />
+<% if /ruby/i =~ ENV['GATEWAY_INTERFACE'] %>
+    <version title="Ruby" ref="http://www.modruby.net/" version="unknown" />
+<% end %>
+    <version title="RubyEB" ref=""http://rubyeb.sourceforge.net/" version="<%= EB::RUBYEB_VERSION %>." />
+  </versions>
+</ruby>
