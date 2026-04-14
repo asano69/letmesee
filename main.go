@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"os/signal"
@@ -329,6 +330,13 @@ func (a *App) ReadMPEG(bookIdx, page, offset, page2, offset2 int) ([]byte, error
 // ---- Entry point ----------------------------------------------------
 
 func main() {
+	// Explicitly register MIME types that may be missing or wrong in the
+	// host OS database.  Without this, FileServer can serve .css as
+	// text/plain, which browsers block when X-Content-Type-Options: nosniff
+	// is in effect.
+	mime.AddExtensionType(".css", "text/css")
+	mime.AddExtensionType(".js", "application/javascript")
+
 	configPath := flag.String("config", "letmesee.json", "path to JSON config file")
 	listen := flag.String("listen", ":8080", "address to listen on (host:port)")
 	flag.Parse()

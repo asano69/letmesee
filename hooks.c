@@ -239,6 +239,12 @@ hook_begin_in_color_jpeg(EB_Book *book, EB_Appendix *app, void *container,
 }
 #endif /* EB_HOOK_BEGIN_IN_COLOR_BMP */
 
+/*
+ * Audio: emit an HTML5 <audio> element directly so the browser can play
+ * the sound inline without navigating away.  The full element is written
+ * in the begin hook; the end hook writes nothing because all required
+ * information (page/offset of both endpoints) is available in argv here.
+ */
 static EB_Error_Code
 hook_begin_wave(EB_Book *book, EB_Appendix *app, void *container,
                 EB_Hook_Code code, int argc, const unsigned int *argv)
@@ -246,8 +252,8 @@ hook_begin_wave(EB_Book *book, EB_Appendix *app, void *container,
     EBHookContext *ctx = (EBHookContext *)container;
     char buf[512];
     snprintf(buf, sizeof(buf),
-             "\\<a href=\"%s?mode=wave&book=%d"
-             "&page=%u&offset=%u&page2=%u&offset2=%u\"\\>[audio] ",
+             "\\<audio controls src=\"%s?mode=wave&book=%d"
+             "&page=%u&offset=%u&page2=%u&offset2=%u\"\\>\\</audio\\>",
              ctx->index_url, ctx->book_index,
              argv[2], argv[3], argv[4], argv[5]);
     eb_write_text_string(book, buf);
@@ -258,7 +264,7 @@ static EB_Error_Code
 hook_end_wave(EB_Book *book, EB_Appendix *app, void *container,
               EB_Hook_Code code, int argc, const unsigned int *argv)
 {
-    eb_write_text_string(book, "\\</a\\>");
+    /* Audio element is complete from hook_begin_wave; nothing to add. */
     return EB_SUCCESS;
 }
 

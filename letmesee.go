@@ -39,7 +39,9 @@ type Config struct {
 	SectionAnchor template.HTML
 }
 
-// DefaultConfig returns a Config with the same defaults as letmesee.rb.
+// DefaultConfig returns a Config with the same defaults as letmesee.rb,
+// except that ForceInline defaults to true so that encyclopedia illustrations
+// and tables are displayed inline rather than as follow-through links.
 func DefaultConfig() Config {
 	return Config{
 		NumColumns:    3,
@@ -47,6 +49,7 @@ func DefaultConfig() Config {
 		IspellDicts:   []string{"american"},
 		FontSize:      16,
 		IndexURL:      "./",
+		ForceInline:   true,
 	}
 }
 
