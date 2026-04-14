@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 # Copyright (C) 2002-2007  Kazuhiko <kazuhiko@fdiary.net>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -11,11 +13,17 @@
 # GNU General Public License for more details.
 #
 
+
+$LOAD_PATH.unshift(File.dirname(__FILE__))
+$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), "erb"))
+
+
 $KCODE = 'u'
 
 require 'nkf'
-require 'iconv'
-require 'eb'
+#require 'iconv'
+require_relative 'eb'
+require_relative 'erb/erbl'
 require 'cgi'
 require 'stem'
 begin
@@ -61,7 +69,7 @@ class LetMeSee
 		@query = (@cgi.params['query'][-1] || '')
 		@ie = @cgi.params['ie'][0] || "UTF8"
 		begin
-			@query = Iconv.conv("utf-8", @ie, @query)
+			@query = @query.encode("utf-8", @ie)
                 rescue
 			@query = NKF::nkf("-w -m0", @query)
 		end
@@ -107,12 +115,12 @@ class LetMeSee
 			path = "#{PATH}/skel/#{file}"
 			File::open( path ) {|f| f.read }
 		}.join
-		r = ERB::new( rhtml.untaint, nil, 1 ).result( binding )
+		r = ERB::new( rhtml, nil, 1 ).result( binding )
 		r
 	end
 
 	def load_conf
-		eval( File::open( "#{PATH}/letmesee.conf" ) { |f| f.read }.untaint )
+		eval( File::open( "#{PATH}/letmesee.conf" ) { |f| f.read } )
 		@num_columns = 3 unless @num_columns
 		@ispell_command = "ispell" unless @ispell_command
 		@ispell_dict_list = ['american'] unless @ispell_dict_list
@@ -156,10 +164,10 @@ class LetMeSee
 		begin
 			result = nil
 			IO.popen("#{@ispell_command} -a -m -C -d #{dict}", 'r+') do |io|
-				io.write("#{Iconv.conv('iso-8859-1', 'utf-8', word)}\n")
+				io.write("#{word.encode('iso-8859-1', 'utf-8')}\n")
 				io.close_write()
 				io.gets() # Ignore this header line.
-				result = Iconv.conv('utf-8', 'iso-8859-1', io.read)
+				result = io.read.encode('utf-8', 'iso-8859-1')
 			end
 			if $? == 0
 				if /\A\+ (.*)/ =~ result
