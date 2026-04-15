@@ -2,8 +2,8 @@
    Compatible with tDiary-style class names used in templates. */
 
 body {
-    font-family: sans-serif;
-    font-size: small;
+    font-family: serif;
+    font-size: medium;
     margin: 0;
     padding: 0;
     background-color: #ffffff;
@@ -16,11 +16,11 @@ form {
 
 input[type="text"],
 input[name="query"] {
-    font-size: small;
+    font-size: large;
 }
 
 select {
-    font-size: small;
+    font-size: medium;
 }
 
 /* Separator line between result blocks */
@@ -37,12 +37,12 @@ div.day {
 
 /* Dictionary title / hit count header */
 div.day h2 {
-    font-size: small;
+    font-size: xx-large;
     font-weight: bold;
     margin: 2px 0;
-    padding: 2px 4px;
+    padding: 10px 10px;
     background-color: #e8e8e8;
-    border-left: 3px solid #666666;
+    border-left: 10px solid #666666;
 }
 
 span.date {
@@ -50,7 +50,7 @@ span.date {
 }
 
 div.body {
-    margin-left: 16px;
+    margin-left: 0px;
 }
 
 /* Individual hit within a dictionary */
@@ -59,9 +59,13 @@ div.section {
 }
 
 div.section h3 {
-    font-size: small;
+    font-size: x-large;
     font-weight: bold;
+    padding: 0px 10px;
     margin: 2px 0;
+    background-color: #e8e8e8;
+    border-left: 10px solid #666666;
+
 }
 
 p.content {
@@ -94,7 +98,7 @@ audio {
 /* Page footer */
 div.footer {
     margin: 8px;
-    font-size: x-small;
+    font-size: small;
     color: #666666;
     border-top: 1px solid #cccccc;
     padding-top: 4px;
