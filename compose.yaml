@@ -23,3 +23,5 @@ services:
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-in.service=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-in.middlewares=hsts@file" ###
       - "traefik.http.services.${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=8080"
+networks:
+  traefik_br:
