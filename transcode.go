@@ -114,8 +114,8 @@ func transcodeFile(inPath, outPath string) error {
 	// Derive the per-frame duration in milliseconds from the stream frame rate.
 	// Fall back to 25 fps (40 ms/frame) when the stream carries no rate info.
 	frameDurMs := int64(40)
-	if fps := videoStream.AvgFrameRate(); fps.Num > 0 && fps.Den > 0 {
-		frameDurMs = int64(1000) * int64(fps.Den) / int64(fps.Num)
+	if fps := videoStream.AvgFrameRate(); fps.Num() > 0 && fps.Den() > 0 {
+		frameDurMs = int64(1000) * int64(fps.Den()) / int64(fps.Num())
 		if frameDurMs <= 0 {
 			frameDurMs = 40
 		}
