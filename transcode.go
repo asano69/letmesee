@@ -111,9 +111,15 @@ func transcodeFile(inPath, outPath string) error {
 		return fmt.Errorf("open decoder: %w", err)
 	}
 
-	// Derive the per-frame duration in milliseconds from the stream frame rate.
-	// Fall back to 25 fps (40 ms/frame) when the stream carries no rate info.
-	frameDurMs := int64(40)
+	// Pre-compute the stream timebase as a multiplier to milliseconds.
+	// Used to convert input PTS → output PTS (ms).
+	inTB := videoStream.TimeBase()
+	inTBNum := int64(inTB.Num())
+	inTBDen := int64(inTB.Den())
+
+	// Fallback frame duration in ms, used only when a decoded frame carries
+	// no valid PTS. Derived from the stream's average frame rate when available.
+	frameDurMs := int64(40) // default: 25 fps
 	if fps := videoStream.AvgFrameRate(); fps.Num() > 0 && fps.Den() > 0 {
 		frameDurMs = int64(1000) * int64(fps.Den()) / int64(fps.Num())
 		if frameDurMs <= 0 {
@@ -209,10 +215,36 @@ func transcodeFile(inPath, outPath string) error {
 		}
 	}()
 
-	// frameCount drives PTS calculation.  Each frame's PTS is
-	// frameCount * frameDurMs, giving correct playback speed regardless
-	// of what timestamps the source stream carries.
+	// lastPts tracks the PTS assigned to the previous output frame.
+	// WebM/VP8 requires strictly monotonically increasing PTS (= DTS for VP8).
+	// MPEG-1 B-frames are decoded out of presentation order, so raw input PTS
+	// values can decrease between consecutive decoded frames. We clamp each
+	// frame's PTS to at least lastPts+1 to satisfy the muxer invariant.
+	lastPts := int64(-1)
 	var frameCount int64
+
+	// ptsToMs converts an input stream PTS value to milliseconds.
+	// Returns -1 when pts is invalid.
+	ptsToMs := func(pts int64) int64 {
+		if pts == astiav.NoPtsValue || pts < 0 || inTBDen == 0 {
+			return -1
+		}
+		return pts * inTBNum * 1000 / inTBDen
+	}
+
+	// nextMonotonicPts returns a valid, strictly monotonically increasing PTS
+	// for the current frame. It prefers the input frame's own PTS (converted to
+	// ms) and falls back to a synthetic value when no PTS is available.
+	nextMonotonicPts := func(decFrm *astiav.Frame) int64 {
+		pts := ptsToMs(decFrm.Pts())
+		if pts < 0 {
+			pts = frameCount * frameDurMs
+		}
+		if pts <= lastPts {
+			pts = lastPts + 1
+		}
+		return pts
+	}
 
 	// sendEncode sends a frame (or nil to flush) to the encoder and writes all
 	// resulting packets to the output.
@@ -240,11 +272,12 @@ func transcodeFile(inPath, outPath string) error {
 
 	// processFrame converts a decoded frame to YUV420P if needed, then encodes it.
 	processFrame := func(decFrm *astiav.Frame) error {
+		pts := nextMonotonicPts(decFrm)
+		lastPts = pts
+		frameCount++
+
 		srcFmt := decFrm.PixelFormat()
 		var sendFrm *astiav.Frame
-
-		pts := frameCount * frameDurMs
-		frameCount++
 
 		if srcFmt == astiav.PixelFormatYuv420P {
 			// No pixel format conversion needed.
