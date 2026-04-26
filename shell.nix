@@ -7,6 +7,8 @@ pkgs.mkShell {
     pkgs.libeb
     pkgs.autoconf
     pkgs.automake
+    pkgs.pkg-config
+    pkgs.ffmpeg.dev
   ];
 
   shellHook = ''

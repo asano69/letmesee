@@ -134,16 +134,20 @@ func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case "mpeg":
-		data, err := h.app.ReadMPEG(p.Book, p.Page, p.Offset, p.Page2, p.Offset2)
+		raw, err := h.app.ReadMPEG(p.Book, p.Page, p.Offset, p.Page2, p.Offset2)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "video/mpeg")
-		w.Write(data)
+		webm, err := TranscodeToWebM(raw)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "video/webm")
+		w.Write(webm)
 		return
 	}
-
 	// Show the simple landing page when there is no query and no search mode.
 	if p.Query == "" && !isSearchMode(p.Mode) && p.Mode != "menu" && p.Mode != "copyright" && p.Mode != "reference" {
 		h.renderIndexPage(w)
