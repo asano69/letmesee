@@ -3,8 +3,23 @@ services:
     image: registry.internal/go-letmesee:latest
     #build: .
     restart: unless-stopped
-    ports:
-      - "3000:8080"
+    container_name: letmesee
+    #ports:
+    #  - "3000:8080"
     volumes:
       - ./letmesee.json:/letmesee/letmesee.json:ro
       - /mnt/zotero/dictionary/epwing:/mnt/zotero/dictionary/epwing:ro
+    networks:
+      - traefik_br
+    labels:
+      - "traefik.enable=true" ###
+      - "traefik.docker.network=traefik_br"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-in-http.rule=Host(`${COMPOSE_PROJECT_NAME}.app.internal`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-in-http.entrypoints=web"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-in-http.middlewares=force-https@file" ###
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-in.rule=Host(`${COMPOSE_PROJECT_NAME}.app.internal`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-in.entrypoints=websecure"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-in.tls=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-in.service=${COMPOSE_PROJECT_NAME}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-in.middlewares=hsts@file" ###
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=8080"
