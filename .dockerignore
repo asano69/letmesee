@@ -1,0 +1,9 @@
+*
+
+!go.mod
+!go.sum
+!*.go
+!hooks.h
+!hooks.c
+!letmesee.json
+!static/

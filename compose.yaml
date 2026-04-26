@@ -1,0 +1,10 @@
+services:
+  go-letmesee:
+    image: registry.internal/go-letmesee:latest
+    #build: .
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    volumes:
+      - ./letmesee.json:/letmesee/letmesee.json:ro
+      - /mnt/zotero/dictionary/epwing:/mnt/zotero/dictionary/epwing:ro
