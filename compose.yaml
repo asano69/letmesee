@@ -1,7 +1,8 @@
 services:
   go-letmesee:
-    image: registry.internal/go-letmesee:latest
     #build: .
+    build: .
+    image: registry.internal/go-letmesee:latest
     restart: unless-stopped
     container_name: letmesee
     #ports:
