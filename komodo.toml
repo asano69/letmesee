@@ -1,0 +1,20 @@
+[[stack]]
+name = "letmesee"
+tags = ["test"]
+[stack.config]
+server = "nuc-vm3-dchost"
+links = [
+  "https://letmesee.app.internal/",
+  "https://gitea.internal/selfhosted/letmesee"
+]
+auto_pull = false
+run_build = true
+destroy_before_deploy = true
+git_provider = "gitea.internal"
+git_account = "komodo"
+repo = "selfhosted/letmesee"
+reclone = true
+webhook_enabled = false
+config_files = [{ path = "letmesee.json" }]
+registry_provider = "registry.internal"
+registry_account = "asano"
