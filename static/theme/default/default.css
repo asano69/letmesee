@@ -95,6 +95,12 @@ audio {
     height: 24px;
 }
 
+/* Video player for MPEG entries */
+video {
+    vertical-align: middle;
+    max-width: 100%;
+}
+
 /* Page footer */
 div.footer {
     margin: 8px;

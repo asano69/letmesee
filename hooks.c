@@ -273,10 +273,19 @@ hook_begin_mpeg(EB_Book *book, EB_Appendix *app, void *container,
                 EB_Hook_Code code, int argc, const unsigned int *argv)
 {
     EBHookContext *ctx = (EBHookContext *)container;
-    char buf[512];
+    char buf[1024];
+    /* Emit a <video> element with a fallback <a> link for browsers that do
+     * not support MPEG-1.  All position information is available in argv
+     * here, so the element can be completed in the begin hook and the end
+     * hook becomes a no-op — the same pattern used for WAVE audio. */
     snprintf(buf, sizeof(buf),
+             "\\<video controls src=\"%s?mode=mpeg&book=%d"
+             "&page=%u&offset=%u&page2=%u&offset2=%u\"\\>"
              "\\<a href=\"%s?mode=mpeg&book=%d"
-             "&page=%u&offset=%u&page2=%u&offset2=%u\"\\>[video] ",
+             "&page=%u&offset=%u&page2=%u&offset2=%u\"\\>[video]\\</a\\>"
+             "\\</video\\>",
+             ctx->index_url, ctx->book_index,
+             argv[2], argv[3], argv[4], argv[5],
              ctx->index_url, ctx->book_index,
              argv[2], argv[3], argv[4], argv[5]);
     eb_write_text_string(book, buf);
@@ -287,7 +296,7 @@ static EB_Error_Code
 hook_end_mpeg(EB_Book *book, EB_Appendix *app, void *container,
               EB_Hook_Code code, int argc, const unsigned int *argv)
 {
-    eb_write_text_string(book, "\\</a\\>");
+    /* Video element is complete from hook_begin_mpeg; nothing to add. */
     return EB_SUCCESS;
 }
 
