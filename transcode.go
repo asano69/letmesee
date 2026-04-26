@@ -62,11 +62,6 @@ func transcodeOnce(input []byte) ([]byte, error) {
 }
 
 // transcodeFile transcodes the video at inPath to a WebM (VP8) file at outPath.
-//
-// NOTE: go-astiav's API surface has changed across minor versions. If a method
-// signature below does not compile, check the go-astiav release notes for the
-// version in go.mod and adjust accordingly. The overall structure (alloc →
-// open → loop → flush → trailer) is stable.
 func transcodeFile(inPath, outPath string) error {
 	astiav.SetLogLevel(astiav.LogLevelError)
 
@@ -116,6 +111,16 @@ func transcodeFile(inPath, outPath string) error {
 		return fmt.Errorf("open decoder: %w", err)
 	}
 
+	// Derive the per-frame duration in milliseconds from the stream frame rate.
+	// Fall back to 25 fps (40 ms/frame) when the stream carries no rate info.
+	frameDurMs := int64(40)
+	if fps := videoStream.AvgFrameRate(); fps.Num > 0 && fps.Den > 0 {
+		frameDurMs = int64(1000) * int64(fps.Den) / int64(fps.Num)
+		if frameDurMs <= 0 {
+			frameDurMs = 40
+		}
+	}
+
 	// ------------------------------------------------------------------ //
 	// Output                                                               //
 	// ------------------------------------------------------------------ //
@@ -149,14 +154,22 @@ func transcodeFile(inPath, outPath string) error {
 	encCtx.SetWidth(decCtx.Width())
 	encCtx.SetHeight(decCtx.Height())
 	encCtx.SetSampleAspectRatio(decCtx.SampleAspectRatio())
-	encCtx.SetPixFmt(astiav.PixFmtYuv420P)
+	encCtx.SetPixelFormat(astiav.PixelFormatYuv420P)
 	encCtx.SetTimeBase(astiav.NewRational(1, 1000)) // millisecond timebase
-	encCtx.SetBitRate(500_000)
+	// CRF mode: b:v 0 disables bitrate targeting; crf drives quality (0=best, 63=worst).
+	encCtx.SetBitRate(0)
 
-	if outFmtCtx.OutputFormat().Flags().Has(astiav.IOFormatFlagGlobalHeader) {
+	if outFmtCtx.OutputFormat().Flags().Has(astiav.IOFormatFlagGlobalheader) {
 		encCtx.SetFlags(encCtx.Flags().Add(astiav.CodecContextFlagGlobalHeader))
 	}
-	if err := encCtx.Open(encoder, nil); err != nil {
+
+	// Enable CRF quality mode for libvpx.
+	encDict := astiav.NewDictionary()
+	defer encDict.Free()
+	encDict.Set("crf", "10", astiav.NewDictionaryFlags())
+	encDict.Set("b", "0", astiav.NewDictionaryFlags())
+
+	if err := encCtx.Open(encoder, encDict); err != nil {
 		return fmt.Errorf("open encoder: %w", err)
 	}
 	if err := encCtx.ToCodecParameters(outStream.CodecParameters()); err != nil {
@@ -166,7 +179,7 @@ func transcodeFile(inPath, outPath string) error {
 
 	// Open the output file for writing.
 	if !outFmtCtx.OutputFormat().Flags().Has(astiav.IOFormatFlagNofile) {
-		pb, err := astiav.OpenIOContext(outPath, astiav.NewIOContextFlags(astiav.IOContextFlagWrite))
+		pb, err := astiav.OpenIOContext(outPath, astiav.NewIOContextFlags(astiav.IOContextFlagWrite), nil, nil)
 		if err != nil {
 			return fmt.Errorf("open output IO context: %w", err)
 		}
@@ -189,12 +202,17 @@ func transcodeFile(inPath, outPath string) error {
 	encFrm := astiav.AllocFrame()
 	defer encFrm.Free()
 
-	var swsCtx *astiav.SwsContext
+	var swsCtx *astiav.SoftwareScaleContext
 	defer func() {
 		if swsCtx != nil {
 			swsCtx.Free()
 		}
 	}()
+
+	// frameCount drives PTS calculation.  Each frame's PTS is
+	// frameCount * frameDurMs, giving correct playback speed regardless
+	// of what timestamps the source stream carries.
+	var frameCount int64
 
 	// sendEncode sends a frame (or nil to flush) to the encoder and writes all
 	// resulting packets to the output.
@@ -222,30 +240,34 @@ func transcodeFile(inPath, outPath string) error {
 
 	// processFrame converts a decoded frame to YUV420P if needed, then encodes it.
 	processFrame := func(decFrm *astiav.Frame) error {
-		srcFmt := decFrm.PixFmt()
+		srcFmt := decFrm.PixelFormat()
 		var sendFrm *astiav.Frame
 
-		if srcFmt == astiav.PixFmtYuv420P {
+		pts := frameCount * frameDurMs
+		frameCount++
+
+		if srcFmt == astiav.PixelFormatYuv420P {
 			// No pixel format conversion needed.
 			if err := encFrm.Ref(decFrm); err != nil {
 				return nil // non-fatal; skip this frame
 			}
+			encFrm.SetPts(pts)
 			sendFrm = encFrm
 		} else {
 			// Lazy-init the swscale context on the first frame that needs conversion.
 			if swsCtx == nil {
 				var err error
-				swsCtx, err = astiav.NewSwsContext(
+				swsCtx, err = astiav.CreateSoftwareScaleContext(
 					decFrm.Width(), decFrm.Height(), srcFmt,
-					decFrm.Width(), decFrm.Height(), astiav.PixFmtYuv420P,
-					astiav.SwsInterpolationFlagBilinear,
+					decFrm.Width(), decFrm.Height(), astiav.PixelFormatYuv420P,
+					astiav.NewSoftwareScaleContextFlags(astiav.SoftwareScaleContextFlagBilinear),
 				)
 				if err != nil {
 					return fmt.Errorf("create sws context: %w", err)
 				}
 				encFrm.SetWidth(decFrm.Width())
 				encFrm.SetHeight(decFrm.Height())
-				encFrm.SetPixFmt(astiav.PixFmtYuv420P)
+				encFrm.SetPixelFormat(astiav.PixelFormatYuv420P)
 				if err := encFrm.AllocBuffer(0); err != nil {
 					return fmt.Errorf("alloc encode frame buffer: %w", err)
 				}
@@ -253,7 +275,7 @@ func transcodeFile(inPath, outPath string) error {
 			if err := swsCtx.ScaleFrame(decFrm, encFrm); err != nil {
 				return nil // non-fatal; skip this frame
 			}
-			encFrm.SetPts(decFrm.Pts())
+			encFrm.SetPts(pts)
 			sendFrm = encFrm
 		}
 
