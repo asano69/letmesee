@@ -1,0 +1,15 @@
+server:
+  root: /mnt/zotero/dictionary/epwing
+# collections groups subbooks for one-click filtering in the search UI.
+# Each entry is "FolderName:N" where N is the 1-based subbook number
+# within that folder.  Use the folder name exactly as it appears on disk.
+collections:
+  encyclopedia:
+    - 平凡社_世界大百科事典_第二版:1
+    - 小学館_日本大百科全書:1
+    - 学研_新世紀ビジュアル百科辞典:1
+    - 平凡社_マイペディア98:1
+  japanese:
+    - 岩波_広辞苑_第六版:1
+theme: default
+force_inline: true

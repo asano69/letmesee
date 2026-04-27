@@ -39,7 +39,7 @@ func DiscoverEPWINGBooks(root string) ([]string, error) {
 // isEPWINGBookRoot returns true when dir contains a CATALOG or CATALOGS file.
 // The presence of either file is the standard indicator of an EPWING book root.
 func isEPWINGBookRoot(dir string) bool {
-	for _, name := range []string{"CATALOG", "catalog", "CATALOGS", "catalogs"} {
+	for _, name := range []string{"CATALOG", "catalog", "CATALOGS", "catalogs", "Catalog", "Catalogs"} {
 		if _, err := os.Stat(filepath.Join(dir, name)); err == nil {
 			return true
 		}

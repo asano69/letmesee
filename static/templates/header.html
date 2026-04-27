@@ -28,15 +28,30 @@
           <option{{if eq .MaxHit 50}} selected{{end}} value="50">50</option>
         </select>
       </div>
-      <p>辞書一覧</p>
-      <table cellpadding="0" width="100%">
-        {{range .DictRows}}
-        <tr>
-          {{range .}}
-          <td>{{if .Valid}}
-            <input type="checkbox" name="dict" value="{{.Index}}"{{if .Checked}} checked{{end}}>{{.Title}}
-          {{end}}</td>
-          {{end}}
-        </tr>
+      {{if .CollectionNames}}
+      <p>コレクション</p>
+      <div class="collections">
+        {{range .CollectionNames}}
+        <button type="submit" name="collection" value="{{.}}"
+          class="collection-btn{{if eq . $.ActiveCollection}} collection-btn-active{{end}}">{{.}}</button>
         {{end}}
-      </table>
+        {{if .ActiveCollection}}
+        {{/* An empty collection value clears the filter and restores the full dict list. */}}
+        <button type="submit" name="collection" value="" class="collection-btn">すべて</button>
+        {{end}}
+      </div>
+      {{end}}
+			<details>
+	      <summary>辞書一覧</summary>
+	      <table cellpadding="0" width="100%">
+	        {{range .DictRows}}
+	        <tr>
+	          {{range .}}
+	          <td>{{if .Valid}}
+	            <input type="checkbox" name="dict" value="{{.Index}}"{{if .Checked}} checked{{end}}>{{.Title}}
+	          {{end}}</td>
+	          {{end}}
+	        </tr>
+	        {{end}}
+	      </table>
+			</details>

@@ -23,14 +23,17 @@ type DictCell struct {
 	Checked bool
 }
 
+// headerData carries all values needed to render header.html.
 type headerData struct {
-	ThemeCSS string
-	Header   template.HTML
-	IndexURL string
-	Query    string
-	Mode     string
-	MaxHit   int
-	DictRows [][]DictCell
+	ThemeCSS         string
+	Header           template.HTML
+	IndexURL         string
+	Query            string
+	Mode             string
+	MaxHit           int
+	DictRows         [][]DictCell
+	CollectionNames  []string // names of all configured collections, for filter buttons
+	ActiveCollection string   // collection name from the current request, if any
 }
 
 type footerData struct {
@@ -70,6 +73,18 @@ type appHandler struct {
 
 func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p := ParseParams(r)
+
+	// When a collection name is specified, resolve it to the concrete list of
+	// subbook indices before any further processing.  A named collection always
+	// takes priority over individually checked dict boxes, so that clicking a
+	// collection button produces a predictable result regardless of which boxes
+	// happen to be checked.  Handlers and search functions only see p.Dict and
+	// never need to know about collections.
+	if p.Collection != "" {
+		if indices := h.app.CollectionIndices(p.Collection); len(indices) > 0 {
+			p.Dict = indices
+		}
+	}
 
 	// Binary/media modes: respond with raw bytes, no HTML wrapper.
 	switch p.Mode {
@@ -148,6 +163,7 @@ func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write(webm)
 		return
 	}
+
 	// Show the simple landing page when there is no query and no search mode.
 	if p.Query == "" && !isSearchMode(p.Mode) && p.Mode != "menu" && p.Mode != "copyright" && p.Mode != "reference" {
 		h.renderIndexPage(w)
@@ -207,7 +223,8 @@ func isSearchMode(m string) bool {
 	return false
 }
 
-// renderHeader writes the page header including the dict-selection table.
+// renderHeader writes the page header including the dict-selection table
+// and any configured collection filter buttons.
 func (h *appHandler) renderHeader(buf *bytes.Buffer, p Params) {
 	cfg := h.app.cfg
 	cols := cfg.NumColumns
@@ -234,13 +251,15 @@ func (h *appHandler) renderHeader(buf *bytes.Buffer, p Params) {
 	}
 
 	d := headerData{
-		ThemeCSS: cfg.ThemeCSS,
-		Header:   cfg.Header,
-		IndexURL: cfg.IndexURL,
-		Query:    p.Query,
-		Mode:     p.Mode,
-		MaxHit:   p.MaxHit,
-		DictRows: rows,
+		ThemeCSS:         cfg.ThemeCSS,
+		Header:           cfg.Header,
+		IndexURL:         cfg.IndexURL,
+		Query:            p.Query,
+		Mode:             p.Mode,
+		MaxHit:           p.MaxHit,
+		DictRows:         rows,
+		CollectionNames:  h.app.CollectionNames(),
+		ActiveCollection: p.Collection,
 	}
 	if err := tHeader.Execute(buf, d); err != nil {
 		log.Printf("tHeader: %v", err)
@@ -361,13 +380,13 @@ func (a *App) ReadMPEG(bookIdx, page, offset, page2, offset2 int) ([]byte, error
 
 func main() {
 	// Explicitly register MIME types that may be absent or wrong in the
-	// host OS MIME database. Without this, FileServer can serve .css as
+	// host OS MIME database.  Without this, FileServer can serve .css as
 	// text/plain, which browsers block when X-Content-Type-Options: nosniff
 	// is in effect.
 	mime.AddExtensionType(".css", "text/css; charset=utf-8")
 	mime.AddExtensionType(".js", "application/javascript; charset=utf-8")
 
-	configPath := flag.String("config", "letmesee.json", "path to JSON config file")
+	configPath := flag.String("config", "letmesee.yaml", "path to YAML config file")
 	listen := flag.String("listen", ":8080", "address to listen on (host:port)")
 	flag.Parse()
 
@@ -376,7 +395,7 @@ func main() {
 	}
 	defer EBFinalize()
 
-	cfg, err := LoadConfig(*configPath)
+	cfg, err := LoadYAMLConfig(*configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Printf("config file %q not found; starting with no dictionaries", *configPath)

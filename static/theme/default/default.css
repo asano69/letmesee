@@ -114,6 +114,52 @@ strong { font-weight: bold; }
 sub    { font-size: 0.75em; vertical-align: sub; }
 sup    { font-size: 0.75em; vertical-align: super; }
 
+/* ------------------------------------------------------------------ */
+/* Collection filter buttons                                            */
+/* ------------------------------------------------------------------ */
+
+div.collections {
+    margin: 4px 0 8px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+button.collection-btn {
+    background-color: #f2f2f2;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    color: #5f6368;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 27px;
+    min-width: 54px;
+    padding: 0 14px;
+    text-align: center;
+    user-select: none;
+}
+
+button.collection-btn:hover {
+    background-color: #e8e8e8;
+    border-color: #aaaaaa;
+    color: #222222;
+}
+
+/* Active collection: darker background so the selected filter is obvious */
+button.collection-btn-active {
+    background-color: #666666;
+    border-color: #444444;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+button.collection-btn-active:hover {
+    background-color: #555555;
+}
+
+
+
+
 /* Mobile adjustments */
 @media (max-width: 600px) {
     input[name="query"] {
@@ -139,5 +185,9 @@ sup    { font-size: 0.75em; vertical-align: super; }
     }
     table {
         font-size: medium;
+    }
+    button.collection-btn {
+        font-size: large;
+        padding: 4px 12px;
     }
 }

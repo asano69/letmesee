@@ -4,7 +4,7 @@ build:
 
 .PHONY: server
 server:
-	./letmesee -config letmesee.json -listen :8080
+	./letmesee -config letmesee.yaml -listen :8080
 
 .PHONY: build-image
 build-image: ## Build Docker image
