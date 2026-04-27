@@ -35,12 +35,12 @@ func ParseCollectionMember(s string) (folderName string, subbookNum int, err err
 
 // ---- On-disk YAML structures -----------------------------------------
 
-// yamlServerBlock is the "server:" section of letmesee.yaml.
+// yamlServerBlock is the "server:" section of config.yaml.
 type yamlServerBlock struct {
 	Root string `yaml:"root"`
 }
 
-// yamlDictEntry is an optional explicit dictionary entry in letmesee.yaml.
+// yamlDictEntry is an optional explicit dictionary entry in config.yaml.
 // Explicit entries are useful when a dictionary lives outside the root, or
 // when an appendix needs to be attached.
 type yamlDictEntry struct {
@@ -48,7 +48,7 @@ type yamlDictEntry struct {
 	Appendix string `yaml:"appendix,omitempty"`
 }
 
-// yamlFile is the complete on-disk representation of letmesee.yaml.
+// yamlFile is the complete on-disk representation of config.yaml.
 type yamlFile struct {
 	Server        yamlServerBlock     `yaml:"server"`
 	DictList      []yamlDictEntry     `yaml:"dictlist,omitempty"`

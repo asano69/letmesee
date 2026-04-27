@@ -386,7 +386,7 @@ func main() {
 	mime.AddExtensionType(".css", "text/css; charset=utf-8")
 	mime.AddExtensionType(".js", "application/javascript; charset=utf-8")
 
-	configPath := flag.String("config", "letmesee.yaml", "path to YAML config file")
+	configPath := flag.String("config", "config.yaml", "path to YAML config file")
 	listen := flag.String("listen", ":8080", "address to listen on (host:port)")
 	flag.Parse()
 
