@@ -8,11 +8,15 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-COPY go.mod go.sum* ./
-RUN go mod download || true
+# Download dependencies before copying source so this layer is only
+# invalidated when go.mod or go.sum change, not on every source edit.
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o letmesee .
 
 # Download a static ffmpeg build (no shared library dependencies).
@@ -41,5 +45,5 @@ COPY static/ /letmesee/static/
 RUN useradd -m letmesee
 USER letmesee
 
-EXPOSE 3000
+EXPOSE 8080
 ENTRYPOINT ["letmesee"]
