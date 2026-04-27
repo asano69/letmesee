@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"net/url"
 	"os/exec"
+	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -24,9 +27,19 @@ type DictEntry struct {
 	Appendix string
 }
 
+// SubbookOrigin records where a globally-indexed subbook came from.
+// The global index is the position of the subbook in App.dicts.
+type SubbookOrigin struct {
+	BookPath        string // absolute path to the EPWING book directory
+	FolderName      string // filepath.Base(BookPath); used for collection lookup
+	LocalSubbookIdx int    // 0-based index within the book (first subbook = 0)
+}
+
 // Config holds values equivalent to letmesee.conf.
 type Config struct {
+	DictRoot      string // root directory for recursive EPWING discovery
 	DictList      []DictEntry
+	Collections   CollectionSpec // named groups of subbooks for frontend filtering
 	NumColumns    int
 	IspellCommand string
 	IspellDicts   []string
@@ -73,20 +86,57 @@ func (c *Config) fontDimensions() (size, narrowW, wideW, code int) {
 
 // App owns all open subbooks and the active config.
 type App struct {
-	cfg   Config
-	dicts []*Subbook
+	cfg         Config
+	dicts       []*Subbook
+	origins     []SubbookOrigin  // parallel to dicts; records where each subbook came from
+	collections map[string][]int // collection name → []global subbook index
 }
 
-// NewApp opens every dictionary listed in cfg.
+// NewApp discovers and opens every dictionary described by cfg.
+//
+// If cfg.DictRoot is set, EPWING books are discovered recursively under that
+// directory and appended to cfg.DictList before any explicit entries are
+// processed.  Explicit entries in cfg.DictList allow attaching appendices or
+// including books that live outside the root.
+//
+// After all subbooks are open, cfg.Collections is resolved to global subbook
+// indices.  Collection members that cannot be matched are logged and skipped.
 func NewApp(cfg Config) (*App, error) {
-	a := &App{cfg: cfg}
+	a := &App{
+		cfg:         cfg,
+		collections: make(map[string][]int),
+	}
+
+	// Discover EPWING books under the root directory, if configured.
+	if cfg.DictRoot != "" {
+		discovered, err := DiscoverEPWINGBooks(cfg.DictRoot)
+		if err != nil {
+			return nil, fmt.Errorf("discovering dictionaries under %q: %w", cfg.DictRoot, err)
+		}
+		for _, path := range discovered {
+			cfg.DictList = append(cfg.DictList, DictEntry{Path: path})
+		}
+	}
+
+	// Open every listed dictionary and record its origin metadata.
 	for _, de := range cfg.DictList {
 		subs, err := OpenDictionaries(de.Path, de.Appendix)
 		if err != nil {
 			return nil, fmt.Errorf("opening %q: %w", de.Path, err)
 		}
-		a.dicts = append(a.dicts, subs...)
+		for localIdx, sub := range subs {
+			a.dicts = append(a.dicts, sub)
+			a.origins = append(a.origins, SubbookOrigin{
+				BookPath:        de.Path,
+				FolderName:      filepath.Base(de.Path),
+				LocalSubbookIdx: localIdx,
+			})
+		}
 	}
+
+	// Resolve collection specs to global subbook indices.
+	a.resolveCollections(cfg.Collections)
+
 	return a, nil
 }
 
@@ -95,6 +145,73 @@ func (a *App) Close() {
 	for _, d := range a.dicts {
 		d.Close()
 	}
+}
+
+// resolveCollections converts collection specs into slices of global subbook
+// indices and stores them in a.collections.
+//
+// Each spec entry has the form "FolderName:N" where N is 1-based.
+// Members that cannot be resolved are logged and skipped rather than causing
+// a fatal error, so a typo in the config does not prevent the server from
+// starting.
+//
+// If two discovered books share the same folder name, the first match wins.
+func (a *App) resolveCollections(specs CollectionSpec) {
+	if len(specs) == 0 {
+		return
+	}
+
+	// Build a lookup: (folderName, 0-based localIdx) → globalIdx.
+	type lookupKey struct {
+		folder string
+		local  int
+	}
+	lookup := make(map[lookupKey]int, len(a.dicts))
+	for globalIdx, o := range a.origins {
+		k := lookupKey{o.FolderName, o.LocalSubbookIdx}
+		if _, alreadySet := lookup[k]; !alreadySet {
+			lookup[k] = globalIdx
+		}
+	}
+
+	for collName, members := range specs {
+		var indices []int
+		for _, member := range members {
+			folderName, subbookNum, err := ParseCollectionMember(member)
+			if err != nil {
+				log.Printf("collection %q: skipping %q: %v", collName, member, err)
+				continue
+			}
+			localIdx := subbookNum - 1 // convert 1-based user spec to 0-based internal index
+			k := lookupKey{folderName, localIdx}
+			globalIdx, ok := lookup[k]
+			if !ok {
+				log.Printf("collection %q: no subbook found for folder %q subbook %d", collName, folderName, subbookNum)
+				continue
+			}
+			indices = append(indices, globalIdx)
+		}
+		if len(indices) > 0 {
+			a.collections[collName] = indices
+		}
+	}
+}
+
+// CollectionNames returns the names of all configured collections,
+// sorted alphabetically.
+func (a *App) CollectionNames() []string {
+	names := make([]string, 0, len(a.collections))
+	for name := range a.collections {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// CollectionIndices returns the global subbook indices for a named collection.
+// Returns nil if the collection does not exist.
+func (a *App) CollectionIndices(name string) []int {
+	return a.collections[name]
 }
 
 // DictCount returns the number of open subbooks.
@@ -114,19 +231,20 @@ func (a *App) DictTitle(i int) string {
 
 // Params holds all parsed CGI query parameters.
 type Params struct {
-	Query   string
-	Mode    string
-	MaxHit  int
-	Book    int
-	Dict    []int  // selected subbook indices; empty means all
-	IE      string // declared input encoding of Query
-	Page    int
-	Offset  int
-	Page2   int
-	Offset2 int
-	Width   int
-	Height  int
-	Code    int
+	Query      string
+	Mode       string
+	MaxHit     int
+	Book       int
+	Dict       []int  // selected subbook indices; empty means all
+	Collection string // named collection; resolved to Dict by the handler when non-empty
+	IE         string // declared input encoding of Query
+	Page       int
+	Offset     int
+	Page2      int
+	Offset2    int
+	Width      int
+	Height     int
+	Code       int
 }
 
 // ParseParams reads URL query values from r into a Params.
@@ -163,6 +281,7 @@ func ParseParams(r *http.Request) Params {
 		fmt.Sscanf(v, "%d", &n)
 		p.Dict = append(p.Dict, n)
 	}
+	p.Collection = q.Get("collection")
 	return p
 }
 
