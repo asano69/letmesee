@@ -7,14 +7,13 @@ services:
     #ports:
     #  - "3000:8080"
     volumes:
-    - ./config.yaml:/letmesee/config.yaml:ro
-    - /mnt/zotero/dictionary/epwing:/mnt/zotero/dictionary/epwing:ro
+      - ./config.yaml:/letmesee/config.yaml:ro
+      - /mnt/zotero/dictionary/epwing:/mnt/zotero/dictionary/epwing:ro
     networks:
-    - traefik_br
+      - traefik_net
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.go-letmesee.rule=Host(`${COMPOSE_PROJECT_NAME}.app.internal`)
-    - traefik.http.services.go-letmesee.loadbalancer.server.port=8080
+      - traefik.enable=true
+      - traefik.http.routers.go-letmesee.rule=Host(`letmesee.app.internal`)
 networks:
-  traefik_br:
+  traefik_net:
     external: true

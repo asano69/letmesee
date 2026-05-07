@@ -6,17 +6,16 @@ services:
     container_name: letmesee-orig
     restart: always
     volumes:
-    - /mnt/zotero/dictionary/epwing:/usr/local/dict:ro
-    - ./letmesee.conf:/usr/local/apache2/htdocs/letmesee.conf:ro
+      - /mnt/zotero/dictionary/epwing:/usr/local/dict:ro
+      - ./letmesee.conf:/usr/local/apache2/htdocs/letmesee.conf:ro
     # Uncomment to access directly without Traefik:
     # ports:
     #   - "8081:80"
     networks:
-    - traefik_br
+      - traefik_net
     labels:
-    - traefik.enable=true
-    - traefik.http.routers.letmesee-orig.rule=Host(`letmesee-orig.app.internal`)
-    - traefik.http.services.letmesee-orig.loadbalancer.server.port=80
+      - traefik.enable=true
+      - traefik.http.routers.letmesee-orig.rule=Host(`letmesee-orig.app.internal`)
 networks:
-  traefik_br:
+  traefik_net:
     external: true
