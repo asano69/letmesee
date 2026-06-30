@@ -1,3 +1,7 @@
+# let me see...
+
+<img src="static/favicon.svg" width="100" align="right" />
+
 目標
 * ユーザが、epwing辞書を引けるWebサーバを作る
 * エージェントがepwing辞書を引けるAPIを作る
