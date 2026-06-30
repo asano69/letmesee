@@ -8,7 +8,7 @@ services:
     #  - "3000:8080"
     volumes:
       - ./config.yaml:/letmesee/config.yaml:ro
-      - /mnt/zotero/dictionary/epwing:/mnt/zotero/dictionary/epwing:ro
+      - /mnt/200g_ssd500g/dictionary/epwing:/mnt/zotero/dictionary/epwing:ro
     networks:
       - traefik_net
     labels:
