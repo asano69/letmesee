@@ -1,7 +1,7 @@
 services:
   go-letmesee:
     # build: .
-    image: registry.internal/go-letmesee:latest
+    image: registry.internal/asano/letmesee:latest
     restart: unless-stopped
     container_name: letmesee
     #ports:
