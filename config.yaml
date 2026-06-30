@@ -20,6 +20,13 @@ collections:
     - 岩波_広辞苑_第六版:1
     - 学研_国語大辞典:1
     - 学研_漢字源:1
-
+  english:
+    - 研究社_新英和大辞典_第六版:1
+    - 大修館_ジーニアス英和:1
+    - 大修館_ジーニアス英和第三版_和英第二版:1
+    - LDOCE4:1
+    - LDOCE4:2
+    - LDOCE4:3
+    - LDOCE4:4    
 theme: default
 force_inline: true
