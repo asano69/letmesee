@@ -1,5 +1,5 @@
 services:
-  go-letmesee:
+  letmesee:
     # build: .
     image: registry.internal/asano/letmesee:latest
     restart: unless-stopped
