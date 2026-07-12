@@ -3,6 +3,9 @@
 // On narrow screens there is no room for a sidebar, so the CSS in
 // default.css falls back to showing this as a normal block placed above
 // the results instead.
+// Also adds an always-visible "scroll to top" button in the bottom-right
+// corner, which is especially useful on mobile where the TOC sidebar is
+// not shown.
 (function () {
   "use strict";
 
@@ -68,9 +71,30 @@
     anchor.parentNode.insertBefore(nav, anchor);
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", buildTOC);
-  } else {
+  // Adds a fixed bottom-right button that scrolls the page back to the
+  // top. Shown unconditionally (not just when a TOC exists) since it is
+  // the primary way to get back to the search form on long result pages,
+  // especially on mobile where the TOC sidebar is not shown.
+  function buildScrollTopButton() {
+    var btn = document.createElement("button");
+    btn.id = "scroll-top-btn";
+    btn.type = "button";
+    btn.title = "先頭に戻る";
+    btn.textContent = "↑";
+    btn.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    document.body.appendChild(btn);
+  }
+
+  function init() {
     buildTOC();
+    buildScrollTopButton();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
   }
 })();
