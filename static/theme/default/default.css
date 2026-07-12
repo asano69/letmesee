@@ -1,193 +1,241 @@
 /* let me see... default theme
    Compatible with tDiary-style class names used in templates. */
 
+:root {
+  --color-bg: #ffffff;
+  --color-fg: #000000;
+  --color-border: #cccccc;
+  --color-header-bg: #e8e8e8;
+  --color-header-border: #666666;
+  --color-link: #0000cc;
+  --color-footer-fg: #666666;
+  --color-btn-bg: #f2f2f2;
+  --color-btn-border: #cccccc;
+  --color-btn-fg: #5f6368;
+  --color-btn-hover-bg: #e8e8e8;
+  --color-btn-hover-border: #aaaaaa;
+  --color-btn-hover-fg: #222222;
+  --color-btn-active-bg: #666666;
+  --color-btn-active-border: #444444;
+  --color-btn-active-fg: #ffffff;
+  --color-btn-active-hover-bg: #555555;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1a1a1a;
+    --color-fg: #e0e0e0;
+    --color-border: #444444;
+    --color-header-bg: #2a2a2a;
+    --color-header-border: #888888;
+    --color-link: #7aa2ff;
+    --color-footer-fg: #999999;
+    --color-btn-bg: #2a2a2a;
+    --color-btn-border: #444444;
+    --color-btn-fg: #cccccc;
+    --color-btn-hover-bg: #333333;
+    --color-btn-hover-border: #666666;
+    --color-btn-hover-fg: #ffffff;
+    --color-btn-active-bg: #888888;
+    --color-btn-active-border: #aaaaaa;
+    --color-btn-active-fg: #000000;
+    --color-btn-active-hover-bg: #999999;
+  }
+}
+
 body {
-    font-family: serif;
-    font-size: medium;
-    margin: 0;
-    padding: 0;
-    background-color: #ffffff;
-    color: #000000;
+  font-family: serif;
+  font-size: medium;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 960px;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
 }
 
 form {
-    margin: 8px;
+  margin: 8px;
 }
 
 input[type="text"],
 input[name="query"] {
-    font-size: large;
+  font-size: large;
 }
 
 select {
-    font-size: medium;
+  font-size: medium;
 }
 
 /* Separator line between result blocks */
 hr.sep {
-    border: none;
-    border-top: 1px solid #cccccc;
-    margin: 4px 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 4px 0;
 }
 
 /* One dictionary result block */
 div.day {
-    margin: 4px 8px;
+  margin: 4px 8px;
 }
 
 /* Dictionary title / hit count header */
 div.day h2 {
-    font-size: xx-large;
-    font-weight: bold;
-    margin: 2px 0;
-    padding: 10px 10px;
-    background-color: #e8e8e8;
-    border-left: 10px solid #666666;
+  font-size: xx-large;
+  font-weight: bold;
+  margin: 2px 0;
+  padding: 10px 10px;
+  background-color: var(--color-header-bg);
+  border-left: 10px solid var(--color-header-border);
 }
 
 span.date {
-    /* wraps the h2 text; no extra styling needed */
+  /* wraps the h2 text; no extra styling needed */
 }
 
 div.body {
-    margin-left: 0px;
+  margin-left: 0px;
 }
 
 /* Individual hit within a dictionary */
 div.section {
-    margin: 4px 0;
+  margin: 4px 0;
 }
 
 div.section h3 {
-    font-size: x-large;
-    font-weight: bold;
-    padding: 0px 10px;
-    margin: 2px 0;
-    background-color: #e8e8e8;
-    border-left: 10px solid #666666;
+  font-size: x-large;
+  font-weight: bold;
+  padding: 0px 10px;
+  margin: 2px 0;
+  background-color: var(--color-header-bg);
+  border-left: 10px solid var(--color-header-border);
 }
 
 p.content {
-    margin: 2px 0 6px 8px;
-    line-height: 1.6;
+  margin: 2px 0 6px 8px;
+  line-height: 1.6;
 }
 
 /* Section anchor used by tDiary themes — hidden by default */
 span.sanchor {
-    display: none;
+  display: none;
 }
 
 /* Reference / cross-link spans */
 span.reference a {
-    color: #0000cc;
+  color: var(--color-link);
 }
 
 /* Gaiji (custom glyph) images — aligned to surrounding text baseline */
 img.gaiji_wide,
 img.gaiji_narrow {
-    vertical-align: middle;
+  vertical-align: middle;
 }
 
 /* Audio player for WAVE entries */
 audio {
-    vertical-align: middle;
-    height: 24px;
+  vertical-align: middle;
+  height: 24px;
 }
 
 /* Video player for MPEG entries */
 video {
-    vertical-align: middle;
-    max-width: 100%;
+  vertical-align: middle;
+  max-width: 100%;
 }
 
 /* Page footer */
 div.footer {
-    margin: 8px;
-    font-size: small;
-    color: #666666;
-    border-top: 1px solid #cccccc;
-    padding-top: 4px;
+  margin: 8px;
+  font-size: small;
+  color: var(--color-footer-fg);
+  border-top: 1px solid var(--color-border);
+  padding-top: 4px;
 }
 
 /* Bold / italic / super / sub decoration from hooks */
-strong { font-weight: bold; }
-sub    { font-size: 0.75em; vertical-align: sub; }
-sup    { font-size: 0.75em; vertical-align: super; }
+strong {
+  font-weight: bold;
+}
+sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+sup {
+  font-size: 0.75em;
+  vertical-align: super;
+}
 
 /* ------------------------------------------------------------------ */
 /* Collection filter buttons                                            */
 /* ------------------------------------------------------------------ */
 
 div.collections {
-    margin: 4px 0 8px 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+  margin: 4px 0 8px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 button.collection-btn {
-    background-color: #f2f2f2;
-    border: 1px solid #cccccc;
-    border-radius: 4px;
-    color: #5f6368;
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 27px;
-    min-width: 54px;
-    padding: 0 14px;
-    text-align: center;
-    user-select: none;
+  background-color: var(--color-btn-bg);
+  border: 1px solid var(--color-btn-border);
+  border-radius: 4px;
+  color: var(--color-btn-fg);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 27px;
+  min-width: 54px;
+  padding: 0 14px;
+  text-align: center;
+  user-select: none;
 }
 
 button.collection-btn:hover {
-    background-color: #e8e8e8;
-    border-color: #aaaaaa;
-    color: #222222;
+  background-color: var(--color-btn-hover-bg);
+  border-color: var(--color-btn-hover-border);
+  color: var(--color-btn-hover-fg);
 }
 
 /* Active collection: darker background so the selected filter is obvious */
 button.collection-btn-active {
-    background-color: #666666;
-    border-color: #444444;
-    color: #ffffff;
-    font-weight: bold;
+  background-color: var(--color-btn-active-bg);
+  border-color: var(--color-btn-active-border);
+  color: var(--color-btn-active-fg);
+  font-weight: bold;
 }
 
 button.collection-btn-active:hover {
-    background-color: #555555;
+  background-color: var(--color-btn-active-hover-bg);
 }
-
-
-
 
 /* Mobile adjustments */
 @media (max-width: 600px) {
-    input[name="query"] {
-        font-size: x-large;
-        width: 100%;
-        box-sizing: border-box;
-    }
-    input[type="submit"] {
-        font-size: large;
-        padding: 6px 12px;
-    }
-    select {
-        font-size: large;
-    }
-    div.day h2 {
-        font-size: x-large;
-    }
-    div.section h3 {
-        font-size: large;
-    }
-    p.content {
-        font-size: medium;
-    }
-    table {
-        font-size: medium;
-    }
-    button.collection-btn {
-        font-size: large;
-        padding: 4px 12px;
-    }
+  input[name="query"] {
+    font-size: x-large;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  input[type="submit"] {
+    font-size: large;
+    padding: 6px 12px;
+  }
+  select {
+    font-size: large;
+  }
+  div.day h2 {
+    font-size: x-large;
+  }
+  div.section h3 {
+    font-size: large;
+  }
+  p.content {
+    font-size: medium;
+  }
+  table {
+    font-size: medium;
+  }
+  button.collection-btn {
+    font-size: large;
+    padding: 4px 12px;
+  }
 }
