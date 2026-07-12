@@ -239,3 +239,58 @@ button.collection-btn-active:hover {
     padding: 4px 12px;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Table of contents (auto-generated from H2/H3 in search results)      */
+/* ------------------------------------------------------------------ */
+
+#toc-sidebar {
+  margin: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-header-bg);
+  font-size: small;
+}
+
+#toc-sidebar .toc-title {
+  margin: 0 0 4px 0;
+  font-weight: bold;
+}
+
+#toc-sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 12px;
+}
+
+#toc-sidebar > ul {
+  padding-left: 0;
+}
+
+#toc-sidebar li {
+  margin: 2px 0;
+}
+
+#toc-sidebar a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+#toc-sidebar a:hover {
+  text-decoration: underline;
+}
+
+/* body has max-width: 960px and is centered, so on wide viewports there is
+   empty space on either side. Float the TOC into that space as a fixed
+   sidebar instead of showing it inline above the results. */
+@media (min-width: 1400px) {
+  #toc-sidebar {
+    position: fixed;
+    top: 16px;
+    left: calc((100vw - 960px) / 2 - 220px);
+    width: 200px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+}
