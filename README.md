@@ -20,7 +20,7 @@
 
 - ダークモードへの対応、横幅の修正
 - フロントコードの整理
-- EPWINGのライブラリをGoで書き直せそうか調べる
+- EPWINGのライブラリをGoで書き直せそうか調べる => eblibで要点をしぼっても半月はかかる作業になりそう。見送り。
 
 
 ## 開発
@@ -40,4 +40,5 @@ make: *** [Makefile:3: build] エラー 1
 
 
 
-参考
+## 参考
+- “aehlke/eb: fork of eb-3.1 (aka eblib, aka libeb) EPWING library written in C, the version required by the Python ebmodule-2.0”. GitHub, [https://github.com/aehlke/eb](https://github.com/aehlke/eb), (Accessed 2026-07-13)
