@@ -6,6 +6,8 @@
  電子辞書を検索するウェブアプリケーション 'let me see...' のGoによる再実装です。
 'let me see...(Go)' は aehlke/ebライブラリを介して、辞書を検索することができます。
 
+モバイル、ダークモード対応あり ^_^
+
 ![](./.github/assets/sample-01.png)
 
 >[!NOTE]
