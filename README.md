@@ -10,13 +10,6 @@
 
 ![](./.github/assets/sample-01.png)
 
->[!NOTE]
-> このリポジトリは、Giteaのミラーであり、ソフトウェアの提供を目的としていません。  
-> このコードは、以下のプロジェクトのソースコードを参考にしたものであり開発途中のもです。
->* http://openlab.ring.gr.jp/edict/letmesee/index.html.ja
->* https://github.com/kurema/forkedLetMeSee
-> 
->ライセンスにはご注意ください。  
 
 ## 目的
 
@@ -45,6 +38,13 @@ compilation terminated.
 make: *** [Makefile:3: build] エラー 1
 ```
 
+## 先行技術
+>[!NOTE]
+> このコードは、以下のプロジェクトのソースコードを参考にしたものであり開発途中のもです。
+>* http://openlab.ring.gr.jp/edict/letmesee/index.html.ja
+>* https://github.com/kurema/forkedLetMeSee
+
+>ライセンスにはご注意ください。  
 
 
 ## 参考
