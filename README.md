@@ -3,6 +3,11 @@
 <img src="static/favicon.svg" width="100" align="right" />
 
 
+ 電子辞書を検索するウェブアプリケーション 'let me see...' のGoポートです。
+'let me see...(Go)' は aehlke/ebライブラリを介して、辞書を検索することができます。
+
+![](./.github/assets/sample-01.png)
+
 >[!NOTE]
 > このリポジトリは、Giteaのミラーであり、ソフトウェアの提供を目的としていません。  
 > このコードは、以下のプロジェクトのソースコードを参考にしたものであり開発途中のもです。
@@ -10,13 +15,6 @@
 >* https://github.com/kurema/forkedLetMeSee
 > 
 >ライセンスにはご注意ください。  
-
-
- 電子辞書を検索するウェブアプリケーション 'let me see...' のGoポートです。
-'let me see...(Go)' は aehlke/ebライブラリを介して、辞書を検索することができます。
-
-![](./.github/assets/sample-01.png)
-
 
 ## 目的
 
