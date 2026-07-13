@@ -3,7 +3,7 @@
 <img src="static/favicon.svg" width="100" align="right" />
 
 
- 電子辞書を検索するウェブアプリケーション 'let me see...' のGoポートです。
+ 電子辞書を検索するウェブアプリケーション 'let me see...' のGoによる再実装です。
 'let me see...(Go)' は aehlke/ebライブラリを介して、辞書を検索することができます。
 
 ![](./.github/assets/sample-01.png)
