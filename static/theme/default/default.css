@@ -327,3 +327,24 @@ button.collection-btn-active:hover {
   border-color: var(--color-btn-hover-border);
   color: var(--color-btn-hover-fg);
 }
+
+/* ------------------------------------------------------------------ */
+/* Constrain inline media so wide images/videos never break layout      */
+/* ------------------------------------------------------------------ */
+
+/* HTML width/height attributes emitted by hooks.c (mono_graphic, color
+   bmp/jpeg, gaiji) can exceed the container width. Force them to scale
+   down instead of overflowing, especially important on narrow/mobile
+   viewports. */
+p.content img,
+p.content video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Safety net: even if some element ignores max-width (e.g. a table cell
+   with an explicit width attribute), clip rather than let it push the
+   page layout sideways. */
+div.section {
+  overflow-x: hidden;
+}
