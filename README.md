@@ -38,6 +38,14 @@ compilation terminated.
 make: *** [Makefile:3: build] エラー 1
 ```
 
+フック関数の制約
+
+hooks.cのフック関数をGoで書き直すには以下の制約がある
+- 関数ポインタの要件: libebのフックシステムはCの関数ポインタを期待し、eb_set_hook()を通じて登録されます hooks.c:334-375 。Goの関数をCの関数ポインタとして渡すには、//exportディレクティブを使用してGo関数をCにエクスポートする必要がありますが、これは複雑でエラーが発生しやすいです。
+- libebデータ構造への直接アクセス: フック関数はEB_Book *book、EB_Appendix *appなどのlibeb固有のデータ構造を直接操作し、eb_write_text_string()などのlibeb関数を呼び出します hooks.c:9-13 。これらの操作をGoから行うには、すべてのlibeb構造体と関数をCGOでラップする必要があります。
+- コールバックの複雑さ: フック関数はlibebから呼び出されるコールバックであり、特定のシグネチャを持つ必要があります hooks.c:8-14 。GoのコールバックをCの関数ポインタとして渡すことは可能ですが、パフォーマンスの低下や複雑なメモリ管理が発生します。
+
+
 ## 先行技術
 * http://openlab.ring.gr.jp/edict/letmesee/index.html.ja
 * https://github.com/kurema/forkedLetMeSee
