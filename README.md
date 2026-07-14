@@ -4,8 +4,8 @@
 <img src="static/favicon.svg" width="100" align="right" />
 
 
- 電子辞書を検索するウェブアプリケーション 'let me see...' のGoによる再実装です。
-'let me see...(Go)' は aehlke/ebライブラリを介して、辞書を検索することができます。
+ 電子辞書を検索するウェブアプリケーション [let me see...](http://openlab.ring.gr.jp/edict/letmesee/index.html) のGoによる再実装です。
+"let me see..."(Go) は [aehlke/eb](https://github.com/aehlke/eb)ライブラリを介して、辞書を検索することができます。
 
 モバイル、ダークモード対応あり ^_^
 
@@ -47,11 +47,5 @@ hooks.cのフック関数をGoで書き直すには以下の制約がある
 - コールバックの複雑さ: フック関数はlibebから呼び出されるコールバックであり、特定のシグネチャを持つ必要があります hooks.c:8-14 。GoのコールバックをCの関数ポインタとして渡すことは可能ですが、パフォーマンスの低下や複雑なメモリ管理が発生します。
 
 
-## 先行技術
-* http://openlab.ring.gr.jp/edict/letmesee/index.html.ja
-* https://github.com/kurema/forkedLetMeSee
-
-
-
 ## 参考
-- “aehlke/eb: fork of eb-3.1 (aka eblib, aka libeb) EPWING library written in C, the version required by the Python ebmodule-2.0”. GitHub, [https://github.com/aehlke/eb](https://github.com/aehlke/eb), (Accessed 2026-07-13)
+- https://github.com/kurema/forkedLetMeSee
