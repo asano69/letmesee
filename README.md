@@ -3,11 +3,9 @@
 
 <img src="static/favicon.svg" width="100" align="right" />
 
+電子辞書オープンラボ・かずひこ様などが作成した[let me see...](http://openlab.ring.gr.jp/edict/letmesee/index.html) のGoによる再実装です。  
 
- 電子辞書を検索するウェブアプリケーション [let me see...](http://openlab.ring.gr.jp/edict/letmesee/index.html) のGoによる再実装です。
-"let me see..."(Go) は [aehlke/eb](https://github.com/aehlke/eb)ライブラリを介して、辞書を検索することができます。
-
-モバイル、ダークモード対応あり ^_^
+- [x] モバイル、ダークモード対応あり ^_^
 
 ![](./.github/assets/sample-01.png)
 
